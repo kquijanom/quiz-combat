@@ -327,11 +327,12 @@ function selectRival(n) {
 function startDuel() {
   if (!state.selectedTopic || !state.selectedRival) return showMessage('error', 'Por favor selecciona un tema y un rival');
   const q = getQuestionsByTopic(state.selectedTopic);
-  setState({screen:'game', currentQuestionIndex:0, answers:Array(5).fill(null), currentQuestions:q, isRankingMode:false});
+  if (q.length === 0) return showMessage('error', 'No hay preguntas disponibles para este tema');
+  setState({screen:'game', currentQuestionIndex:0, answers:Array(q.length).fill(null), currentQuestions:q, isRankingMode:false});
 }
 
 function selectAnswer(i, a) { const ans = [...state.answers]; ans[i] = a; setState({answers:ans}); }
-function nextQuestion() { state.currentQuestionIndex < 4 && setState({currentQuestionIndex:state.currentQuestionIndex+1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
+function nextQuestion() { state.currentQuestionIndex < state.currentQuestions.length - 1 && setState({currentQuestionIndex:state.currentQuestionIndex+1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
 function prevQuestion() { state.currentQuestionIndex > 0 && setState({currentQuestionIndex:state.currentQuestionIndex-1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
 
 async function submitDuel() {
@@ -449,8 +450,8 @@ function render() {
       r.innerHTML = `<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display);">Error al cargar pregunta</h1><button class="button-primary" onclick="backToDashboard()">Volver</button></div></div>`;
       return;
     }
-    const pb = Array(5).fill(0).map((x,i) => i <= state.currentQuestionIndex);
-    r.innerHTML = `<div class="game-container"><div class="header" style="padding: var(--spacing-lg);"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);"><div>Pregunta ${state.currentQuestionIndex+1}/5</div><div style="text-align: right;">vs ${state.selectedRival?.name}</div></div><div class="progress-bar">${pb.map(f => `<div class="progress-segment ${f ? 'filled' : ''}"></div>`).join('')}</div></div><div class="question-box"><p class="question-text">${q.text}</p><div class="option-container">${q.options.map((o,i) => `<button class="option-button ${state.answers[state.currentQuestionIndex] === i ? 'selected' : ''}" onclick="selectAnswer(${state.currentQuestionIndex}, ${i})">${o}</button>`).join('')}</div></div><div class="button-group"><button class="button-secondary" onclick="prevQuestion()" ${state.currentQuestionIndex === 0 ? 'disabled' : ''}>← Atrás</button>${state.currentQuestionIndex < 4 ? `<button class="button-primary" onclick="nextQuestion()">Siguiente →</button>` : `<button class="button-primary" onclick="submitDuel()">Enviar ✓</button>`}</div></div>`;
+    const pb = Array(state.currentQuestions.length).fill(0).map((x,i) => i <= state.currentQuestionIndex);
+    r.innerHTML = `<div class="game-container"><div class="header" style="padding: var(--spacing-lg);"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);"><div>Pregunta ${state.currentQuestionIndex+1}/5</div><div style="text-align: right;">vs ${state.selectedRival?.name}</div></div><div class="progress-bar">${pb.map(f => `<div class="progress-segment ${f ? 'filled' : ''}"></div>`).join('')}</div></div><div class="question-box"><p class="question-text">${q.text}</p><div class="option-container">${q.options.map((o,i) => `<button class="option-button ${state.answers[state.currentQuestionIndex] === i ? 'selected' : ''}" onclick="selectAnswer(${state.currentQuestionIndex}, ${i})">${o}</button>`).join('')}</div></div><div class="button-group"><button class="button-secondary" onclick="prevQuestion()" ${state.currentQuestionIndex === 0 ? 'disabled' : ''}>← Atrás</button>${state.currentQuestionIndex < state.currentQuestions.length - 1 ? `<button class="button-primary" onclick="nextQuestion()">Siguiente →</button>` : `<button class="button-primary" onclick="submitDuel()">Enviar ✓</button>`}</div></div>`;
   } else if (state.screen === 'results') {
     const nb = state.isRankingMode ? '⚡ Otro Duelo' : 'Volver al Dashboard';
     const nf = state.isRankingMode ? 'startAutoMatchmaking()' : 'backToDashboard()';
