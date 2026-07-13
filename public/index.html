@@ -310,7 +310,9 @@ function handleCreateGroup() {
   const u = document.getElementById('userName')?.value;
   if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
   const c = Math.random().toString(36).substring(2,8).toUpperCase();
-  const newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  let newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  const savedStats = loadUserStats(c, u);
+  if (savedStats) newUser = {...newUser, ...savedStats};
   setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[newUser]},currentUser:newUser,isLoggedIn:false});
 }
 
@@ -318,7 +320,9 @@ function handleJoinGroup() {
   const c = document.getElementById('joinCode')?.value;
   const n = document.getElementById('joinName')?.value;
   if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
-  const newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  let newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  const savedStats = loadUserStats(c, n);
+  if (savedStats) newUser = {...newUser, ...savedStats};
   setState({screen:'dashboard',currentUser:newUser,currentGroup:{name:`Grupo ${c}`,code:c,members:[newUser,createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
 }
 
@@ -349,6 +353,17 @@ async function logout() {
   }
   setState({screen:'login', currentUser:null, currentGroup:null, inviteCode:null, isLoggedIn:false, loginTab:'session'});
   localStorage.removeItem('quizCombatUser');
+}
+
+function saveUserStats(groupCode, userName, userObj) {
+  const key = `user-stats-${groupCode}-${userName}`;
+  localStorage.setItem(key, JSON.stringify(userObj));
+}
+
+function loadUserStats(groupCode, userName) {
+  const key = `user-stats-${groupCode}-${userName}`;
+  const saved = localStorage.getItem(key);
+  return saved ? JSON.parse(saved) : null;
 }
 
 function isDuelPlayed(topic, rivalName) {
@@ -426,9 +441,9 @@ async function submitDuel() {
     }
   }
 
-  // Guardar en localStorage si no está loggeado
-  if (!state.isLoggedIn && state.currentGroup) {
-    localStorage.setItem(`group-${state.currentGroup.code}-stats`, JSON.stringify(updatedUser));
+  // Guardar en localStorage (con o sin login)
+  if (state.currentGroup && state.currentUser?.name) {
+    saveUserStats(state.currentGroup.code, state.currentUser.name, updatedUser);
   }
 
   // Actualizar estado local SIEMPRE
