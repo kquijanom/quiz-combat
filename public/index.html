@@ -208,11 +208,30 @@ async function handleSessionLogin() {
     }
 
     const {data: userProfile} = await client.from('profiles').select('*').eq('id', data.user.id).single();
+    const winRate = userProfile?.total_duels > 0 ? Math.round((userProfile.total_wins / userProfile.total_duels) * 100) : 0;
+
     setState({
       screen: 'dashboard',
-      currentUser: {name: userProfile?.username || u, id: data.user.id, winRate: 60, emoji:'👤'},
+      currentUser: {
+        name: userProfile?.username || u,
+        id: data.user.id,
+        winRate: winRate,
+        totalDuels: userProfile?.total_duels || 0,
+        totalWins: userProfile?.total_wins || 0,
+        points: userProfile?.points || 0,
+        emoji:'👤'
+      },
       isLoggedIn: true,
-      currentGroup: {name: 'Mi grupo', code: 'GRUPO001', members: [{name: userProfile?.username || u, id: data.user.id, winRate:60, emoji:'👤'}, createSampleUser('María'), createSampleUser('Juan'), createSampleUser('Sofia')]},
+      currentGroup: {
+        name: 'Mi grupo',
+        code: 'GRUPO001',
+        members: [
+          {name: userProfile?.username || u, id: data.user.id, winRate, emoji:'👤'},
+          createSampleUser('María'),
+          createSampleUser('Juan'),
+          createSampleUser('Sofia')
+        ]
+      },
       loginTab: 'session',
       loading: false,
       message: {type:null,text:null}
@@ -315,11 +334,47 @@ function selectAnswer(i, a) { const ans = [...state.answers]; ans[i] = a; setSta
 function nextQuestion() { state.currentQuestionIndex < 4 && setState({currentQuestionIndex:state.currentQuestionIndex+1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
 function prevQuestion() { state.currentQuestionIndex > 0 && setState({currentQuestionIndex:state.currentQuestionIndex-1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
 
-function submitDuel() {
+async function submitDuel() {
   let s = 0;
   for (let i = 0; i < state.currentQuestions.length; i++) { if (state.answers[i] === state.currentQuestions[i].correctAnswerIndex) s++; }
   const rs = Math.floor(Math.random() * 5);
-  setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:s>rs, isRankingMode:state.isRankingMode});
+  const userWon = s > rs;
+
+  // Actualizar estadísticas en Supabase si está loggeado
+  if (state.isLoggedIn && state.currentUser) {
+    const client = getSupabase();
+    if (client) {
+      const newTotalDuels = (state.currentUser.totalDuels || 0) + 1;
+      const newTotalWins = (state.currentUser.totalWins || 0) + (userWon ? 1 : 0);
+      const newPoints = (state.currentUser.points || 0) + s;
+
+      await client.from('profiles').update({
+        total_duels: newTotalDuels,
+        total_wins: newTotalWins,
+        points: newPoints
+      }).eq('id', state.currentUser.id);
+
+      // Actualizar estado local
+      setState({
+        screen:'results',
+        userScore:s,
+        rivalScore:rs,
+        resultUserWon:userWon,
+        isRankingMode:state.isRankingMode,
+        currentUser: {
+          ...state.currentUser,
+          totalDuels: newTotalDuels,
+          totalWins: newTotalWins,
+          points: newPoints,
+          winRate: newTotalDuels > 0 ? Math.round((newTotalWins / newTotalDuels) * 100) : 0
+        }
+      });
+    } else {
+      setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:userWon, isRankingMode:state.isRankingMode});
+    }
+  } else {
+    setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:userWon, isRankingMode:state.isRankingMode});
+  }
 }
 
 function backToRanking() { setState({screen:'ranking', selectedTopic:null, selectedRival:null, currentQuestionIndex:0, answers:Array(5).fill(null), matchmakingStatus:'idle'}); }
