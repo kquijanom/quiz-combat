@@ -224,13 +224,14 @@ async function handleSessionRegister() {
   if (!client) return (setState({loading: false}), showMessage('error', 'Supabase aún está cargando...'));
 
   try {
-    const {data, error} = await client.auth.signUp({email: u + '@example.com', password: p});
+    const uniqueEmail = u + '+' + Date.now() + '@example.com';
+    const {data, error} = await client.auth.signUp({email: uniqueEmail, password: p});
     if (error) {
       setState({loading: false});
       return showMessage('error', error.message || 'Error al crear cuenta');
     }
 
-    const {error: insertError} = await client.from('profiles').insert([{id: data.user.id, username: u}]);
+    const {error: insertError} = await client.from('profiles').insert([{id: data.user?.id, username: u}]);
     if (insertError) throw insertError;
 
     setState({loading: false});
