@@ -356,14 +356,21 @@ async function logout() {
 }
 
 function saveUserStats(groupCode, userName, userObj) {
-  const key = `user-stats-${groupCode}-${userName}`;
-  localStorage.setItem(key, JSON.stringify(userObj));
+  const key = `user-stats-${userName}`;
+  const dataToSave = {...userObj, savedAt: Date.now(), groupCode};
+  localStorage.setItem(key, JSON.stringify(dataToSave));
+  console.log('✅ Stats guardadas:', key, dataToSave);
 }
 
 function loadUserStats(groupCode, userName) {
-  const key = `user-stats-${groupCode}-${userName}`;
+  const key = `user-stats-${userName}`;
   const saved = localStorage.getItem(key);
-  return saved ? JSON.parse(saved) : null;
+  if (saved) {
+    const data = JSON.parse(saved);
+    console.log('✅ Stats cargadas:', key, data);
+    return data;
+  }
+  return null;
 }
 
 function isDuelPlayed(topic, rivalName) {
