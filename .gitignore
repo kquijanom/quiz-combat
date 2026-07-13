@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env.local
+.env
+.DS_Store
+*.log
+.vercel/
+.vite/
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.claude/
+design_extracted/
+Outputs/
+*.csv
