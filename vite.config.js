@@ -7,14 +7,17 @@ export default defineConfig({
     emptyOutDir: true,
     minify: false,
     copyPublicDir: false,
-    lib: {
-      entry: 'index.html',
-      formats: []
+    rollupOptions: {
+      input: {
+        main: './public/index.html'
+      },
+      output: {
+        dir: '../dist'
+      }
     }
   },
   server: {
     port: 3000,
-    open: true,
-    middlewareMode: false
+    open: true
   }
 })

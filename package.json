@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "mkdir -p dist && node -e \"require('fs').copyFileSync('./public/index.html', './dist/index.html')\"",
+    "build": "node -e \"const fs = require('fs'); fs.mkdirSync('dist', {recursive: true}); fs.copyFileSync('./public/index.html', './dist/index.html');\"",
     "preview": "vite preview",
     "deploy": "vercel"
   },
