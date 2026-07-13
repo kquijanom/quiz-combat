@@ -157,7 +157,37 @@ const questionsData = [
   {id:'dep1',topic:'Deportes',text:'¿Cuántos jugadores tiene un equipo de fútbol en el campo al iniciar el partido?',options:['9','10','11','12'],correctAnswerIndex:2,justification:'Cada equipo juega con 11 futbolistas.'}
 ];
 
-const topicsList = ['Actualidad','Ciencia y tecnología','Cine y series','Cultura general','Geografía','Historia','Deportes'];
+const topicsList = ['Actualidad','Ciencia y tecnología','Cine y series','Colombia','Cultura general','Deportes','Economía y negocios','Gastronomía','Geografía','Historia','Internet y redes sociales','Música','Naturaleza','Salud','Videojuegos'];
+
+// Cargar CSV y parsear preguntas
+async function loadQuestionsFromCSV() {
+  try {
+    const response = await fetch('./preguntas.csv');
+    const csvText = await response.text();
+    const lines = csvText.split('\n').slice(1);
+    const parsed = [];
+    lines.forEach((line, idx) => {
+      if (!line.trim()) return;
+      const parts = line.split(';');
+      if (parts.length < 8) return;
+      const correctIdx = parts[6].trim().charCodeAt(0) - 65;
+      if (correctIdx < 0 || correctIdx > 3) return;
+      parsed.push({
+        id: `q${idx}`,
+        topic: parts[0].trim(),
+        text: parts[1].trim(),
+        options: [parts[2].trim(), parts[3].trim(), parts[4].trim(), parts[5].trim()],
+        correctAnswerIndex: correctIdx,
+        justification: parts[7].trim()
+      });
+    });
+    questionsData.splice(0, questionsData.length, ...parsed);
+    console.log(`✓ Cargadas ${parsed.length} preguntas desde CSV`);
+  } catch (e) {
+    console.log('CSV no disponible, usando preguntas por defecto');
+  }
+}
+loadQuestionsFromCSV();
 
 function getQuestionsByTopic(t) { return questionsData.filter(q => q.topic === t).slice(0, 5); }
 function createSampleUser(n) { return {id:`user-${Date.now()}-${Math.random()}`,name:n,winRate:Math.floor(Math.random()*100),emoji:['👨','👩','👦','👧'][Math.floor(Math.random()*4)]}; }
