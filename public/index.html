@@ -361,6 +361,18 @@ function startDuel() {
   if (!questionsData || questionsData.length === 0) return showMessage('error', 'Las preguntas aún se están cargando...');
   const q = getQuestionsByTopic(state.selectedTopic);
   if (q.length === 0) return showMessage('error', 'No hay preguntas disponibles para este tema');
+
+  const duelKey = `duel-${state.selectedTopic}-${state.selectedRival.name}`;
+  const lastDuel = localStorage.getItem(duelKey);
+  const now = Date.now();
+  const oneDayMs = 24 * 60 * 60 * 1000;
+
+  if (lastDuel && (now - parseInt(lastDuel)) < oneDayMs) {
+    const hoursLeft = Math.ceil((oneDayMs - (now - parseInt(lastDuel))) / (60 * 60 * 1000));
+    return showMessage('error', `Ya jugaste contra ${state.selectedRival.name} en ${state.selectedTopic}. Vuelve en ${hoursLeft}h.`);
+  }
+
+  localStorage.setItem(duelKey, now.toString());
   setState({screen:'game', currentQuestionIndex:0, answers:Array(q.length).fill(null), currentQuestions:q, isRankingMode:false});
 }
 
@@ -374,41 +386,47 @@ async function submitDuel() {
   const rs = Math.floor(Math.random() * 5);
   const userWon = s > rs;
 
-  // Actualizar estadísticas en Supabase si está loggeado
-  if (state.isLoggedIn && state.currentUser) {
+  // Calcular nuevas estadísticas
+  const newTotalDuels = (state.currentUser?.totalDuels || 0) + 1;
+  const newTotalWins = (state.currentUser?.totalWins || 0) + (userWon ? 1 : 0);
+  const newPoints = (state.currentUser?.points || 0) + s;
+  const newWinRate = newTotalDuels > 0 ? Math.round((newTotalWins / newTotalDuels) * 100) : 0;
+
+  const updatedUser = {
+    ...state.currentUser,
+    totalDuels: newTotalDuels,
+    totalWins: newTotalWins,
+    points: newPoints,
+    winRate: newWinRate
+  };
+
+  // Actualizar en Supabase si está loggeado
+  if (state.isLoggedIn && state.currentUser?.id) {
     const client = getSupabase();
     if (client) {
-      const newTotalDuels = (state.currentUser.totalDuels || 0) + 1;
-      const newTotalWins = (state.currentUser.totalWins || 0) + (userWon ? 1 : 0);
-      const newPoints = (state.currentUser.points || 0) + s;
-
       await client.from('profiles').update({
         total_duels: newTotalDuels,
         total_wins: newTotalWins,
-        points: newPoints
+        points: newPoints,
+        win_rate: newWinRate
       }).eq('id', state.currentUser.id);
-
-      // Actualizar estado local
-      setState({
-        screen:'results',
-        userScore:s,
-        rivalScore:rs,
-        resultUserWon:userWon,
-        isRankingMode:state.isRankingMode,
-        currentUser: {
-          ...state.currentUser,
-          totalDuels: newTotalDuels,
-          totalWins: newTotalWins,
-          points: newPoints,
-          winRate: newTotalDuels > 0 ? Math.round((newTotalWins / newTotalDuels) * 100) : 0
-        }
-      });
-    } else {
-      setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:userWon, isRankingMode:state.isRankingMode});
     }
-  } else {
-    setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:userWon, isRankingMode:state.isRankingMode});
   }
+
+  // Guardar en localStorage si no está loggeado
+  if (!state.isLoggedIn && state.currentGroup) {
+    localStorage.setItem(`group-${state.currentGroup.code}-stats`, JSON.stringify(updatedUser));
+  }
+
+  // Actualizar estado local SIEMPRE
+  setState({
+    screen:'results',
+    userScore:s,
+    rivalScore:rs,
+    resultUserWon:userWon,
+    isRankingMode:state.isRankingMode,
+    currentUser: updatedUser
+  });
 }
 
 function backToRanking() { setState({screen:'ranking', selectedTopic:null, selectedRival:null, currentQuestionIndex:0, answers:Array(5).fill(null), matchmakingStatus:'idle'}); }
