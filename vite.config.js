@@ -6,16 +6,15 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true,
     minify: false,
-    rollupOptions: {
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
-      }
+    copyPublicDir: false,
+    lib: {
+      entry: 'index.html',
+      formats: []
     }
   },
   server: {
     port: 3000,
-    open: true
+    open: true,
+    middlewareMode: false
   }
 })
