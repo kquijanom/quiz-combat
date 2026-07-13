@@ -311,15 +311,23 @@ function handleCreateGroup() {
   if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
   const c = Math.random().toString(36).substring(2,8).toUpperCase();
   let newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  console.log('🟢 Creando grupo con código:', c, 'usuario:', u);
   setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[newUser]},currentUser:newUser,isLoggedIn:false});
 
   // Cargar stats desde Supabase en background
-  loadUserStats(c, u).then(savedStats => {
-    if (savedStats) {
-      console.log('✅ Stats cargadas de Supabase:', savedStats);
-      setState({currentUser: {...newUser, ...savedStats}});
-    }
-  });
+  setTimeout(() => {
+    console.log('⏳ Intentando cargar stats de Supabase...');
+    loadUserStats(c, u).then(savedStats => {
+      if (savedStats) {
+        console.log('✅ Stats encontradas en Supabase:', savedStats);
+        setState({currentUser: {...newUser, ...savedStats}});
+      } else {
+        console.log('❌ No se encontraron stats en Supabase para:', c, u);
+      }
+    }).catch(err => {
+      console.log('❌ Error al cargar stats:', err);
+    });
+  }, 500);
 }
 
 function handleJoinGroup() {
@@ -327,15 +335,23 @@ function handleJoinGroup() {
   const n = document.getElementById('joinName')?.value;
   if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
   let newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  console.log('🔷 Uniendo grupo con código:', c, 'usuario:', n);
   setState({screen:'dashboard',currentUser:newUser,currentGroup:{name:`Grupo ${c}`,code:c,members:[newUser,createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
 
   // Cargar stats desde Supabase en background
-  loadUserStats(c, n).then(savedStats => {
-    if (savedStats) {
-      console.log('✅ Stats cargadas de Supabase:', savedStats);
-      setState({currentUser: {...newUser, ...savedStats}});
-    }
-  });
+  setTimeout(() => {
+    console.log('⏳ Intentando cargar stats de Supabase...');
+    loadUserStats(c, n).then(savedStats => {
+      if (savedStats) {
+        console.log('✅ Stats encontradas en Supabase:', savedStats);
+        setState({currentUser: {...newUser, ...savedStats}});
+      } else {
+        console.log('❌ No se encontraron stats en Supabase para:', c, n);
+      }
+    }).catch(err => {
+      console.log('❌ Error al cargar stats:', err);
+    });
+  }, 500);
 }
 
 function handleCopyCode() { state.inviteCode && (navigator.clipboard.writeText(state.inviteCode), alert('Código copiado al portapapeles')); }
