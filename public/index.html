@@ -311,8 +311,14 @@ function handleCreateGroup() {
   if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
   const c = Math.random().toString(36).substring(2,8).toUpperCase();
   let newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  console.log('🟢 Creando grupo con usuario:', u);
   const savedStats = loadUserStats(c, u);
-  if (savedStats) newUser = {...newUser, ...savedStats};
+  if (savedStats) {
+    console.log('✅ Stats encontradas y cargadas:', savedStats);
+    newUser = {...newUser, ...savedStats};
+  } else {
+    console.log('❌ No hay stats guardadas para:', u);
+  }
   setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[newUser]},currentUser:newUser,isLoggedIn:false});
 }
 
@@ -321,8 +327,14 @@ function handleJoinGroup() {
   const n = document.getElementById('joinName')?.value;
   if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
   let newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  console.log('🔷 Intentando cargar stats para:', n);
   const savedStats = loadUserStats(c, n);
-  if (savedStats) newUser = {...newUser, ...savedStats};
+  if (savedStats) {
+    console.log('✅ Stats encontradas y cargadas:', savedStats);
+    newUser = {...newUser, ...savedStats};
+  } else {
+    console.log('❌ No hay stats guardadas para:', n);
+  }
   setState({screen:'dashboard',currentUser:newUser,currentGroup:{name:`Grupo ${c}`,code:c,members:[newUser,createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
 }
 
@@ -448,9 +460,14 @@ async function submitDuel() {
     }
   }
 
-  // Guardar en localStorage (con o sin login)
-  if (state.currentGroup && state.currentUser?.name) {
-    saveUserStats(state.currentGroup.code, state.currentUser.name, updatedUser);
+  // Guardar en localStorage SIEMPRE (antes de setState)
+  if (state.currentUser?.name) {
+    console.log('🔴 Intentando guardar stats para:', state.currentUser.name);
+    console.log('📊 Datos a guardar:', updatedUser);
+    saveUserStats(state.currentGroup?.code || 'sin-grupo', state.currentUser.name, updatedUser);
+    console.log('✅ Stats guardadas en localStorage');
+  } else {
+    console.log('❌ No hay currentUser.name, no se guardan stats');
   }
 
   // Actualizar estado local SIEMPRE
@@ -460,7 +477,8 @@ async function submitDuel() {
     rivalScore:rs,
     resultUserWon:userWon,
     isRankingMode:state.isRankingMode,
-    currentUser: updatedUser
+    currentUser: updatedUser,
+    currentGroup: state.currentGroup
   });
 }
 
