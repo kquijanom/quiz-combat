@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Combat - Duelos de Conocimiento</title>
+  <style>
+    :root {
+      --orange-500: #FF6B35;
+      --navy-900: #1a1a2e;
+      --gold-400: #FFB347;
+      --gray-300: #e0e0e0;
+      --text-primary: #333;
+      --text-secondary: #666;
+      --border-default: #ddd;
+      --spacing-sm: 8px;
+      --spacing-md: 12px;
+      --spacing-lg: 16px;
+      --spacing-xl: 24px;
+      --radius-lg: 8px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+      --font-display: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-body);
+      background: #f5f5f5;
+      color: var(--text-primary);
+    }
+
+    #root {
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    .button-primary {
+      padding: var(--spacing-lg) var(--spacing-xl);
+      background: linear-gradient(135deg, var(--orange-500) 0%, #FF5733 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 87, 51, 0.3);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      margin-bottom: var(--spacing-md);
+      width: 100%;
+      font-family: var(--font-display);
+    }
+
+    .button-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(255, 87, 51, 0.5);
+    }
+
+    .button-secondary {
+      padding: var(--spacing-lg) var(--spacing-xl);
+      background: white;
+      color: var(--orange-500);
+      border: 2px solid var(--orange-500);
+      border-radius: var(--radius-lg);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: var(--spacing-md);
+      width: 100%;
+      font-family: var(--font-display);
+    }
+
+    .button-secondary:hover {
+      background: rgba(255, 165, 0, 0.05);
+    }
+
+    .card {
+      padding: var(--spacing-lg);
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-default);
+      margin-bottom: var(--spacing-lg);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .card:hover {
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      transform: translateY(-4px);
+    }
+
+    .card.selected {
+      border: 2px solid var(--orange-500);
+      background: rgba(255, 165, 0, 0.05);
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--navy-900);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .card-subtitle {
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .badge-box {
+      font-weight: 700;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      background: var(--gray-300);
+      color: var(--text-primary);
+    }
+
+    .badge-box.active {
+      background: var(--orange-500);
+      color: white;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    @keyframes bounce {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.2);
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+      width: 100%;
+      padding: var(--spacing-md);
+      border: 2px solid var(--gold-400);
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      margin-bottom: var(--spacing-md);
+      box-sizing: border-box;
+      font-family: var(--font-body);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--orange-500);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+
+    .option-button {
+      padding: var(--spacing-lg);
+      background: white;
+      border: 2px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      width: 100%;
+      font-family: var(--font-body);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .option-button:hover {
+      border-color: var(--orange-500);
+      background: rgba(255, 107, 53, 0.05);
+    }
+
+    .option-button.selected {
+      background: rgba(255, 107, 53, 0.15);
+      border-color: var(--orange-500);
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .progress-segment {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+    }
+
+    .progress-segment.filled {
+      background: white;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--orange-500) 0%, #FF5733 100%);
+      color: white;
+      padding: var(--spacing-xl);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-xl);
+      text-align: center;
+    }
+
+    .header h1 {
+      margin: 0 0 var(--spacing-sm);
+      font-size: 32px;
+    }
+
+    .header p {
+      margin: 0;
+      opacity: 0.95;
+      font-size: 14px;
+    }
+
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, var(--orange-500) 0%, #FF5733 100%);
+      padding: var(--spacing-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container .float-shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .login-container .float-shape:nth-child(1) {
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+    }
+
+    .login-container .float-shape:nth-child(2) {
+      bottom: -150px;
+      left: -150px;
+      width: 400px;
+      height: 400px;
+      animation-delay: 1s;
+    }
+
+    .login-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: white;
+    }
+
+    .login-logo {
+      font-size: 80px;
+      margin-bottom: var(--spacing-lg);
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    .login-title {
+      font-size: 48px;
+      margin: 0 0 var(--spacing-md);
+      letter-spacing: -1px;
+      font-weight: 700;
+    }
+
+    .login-subtitle {
+      font-weight: 500;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0 0 var(--spacing-xl);
+      opacity: 0.95;
+      max-width: 300px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      padding: var(--spacing-xl);
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      margin-top: var(--spacing-xl);
+      animation: slideUp 0.6s ease-out;
+      color: var(--navy-900);
+    }
+
+    .login-box h2 {
+      margin-bottom: var(--spacing-lg);
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-switch {
+      margin-top: var(--spacing-lg);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .tab-link {
+      background: none;
+      border: none;
+      color: var(--orange-500);
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+      font-family: var(--font-body);
+      font-size: 12px;
+    }
+
+    .tab-link:hover {
+      text-decoration: underline;
+    }
+
+    .divider {
+      text-align: center;
+      margin: var(--spacing-lg) 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .dashboard-container,
+    .game-container,
+    .ranking-container,
+    .results-container {
+      padding: var(--spacing-xl);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .dashboard-container {
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .stats-box {
+      background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+      border: 1px solid var(--gold-400);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    .stat-item {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--orange-500);
+    }
+
+    .rival-item {
+      display: flex;
+      gap: var(--spacing-lg);
+      align-items: flex-start;
+    }
+
+    .rival-emoji {
+      font-size: 32px;
+    }
+
+    .rival-details {
+      flex: 1;
+    }
+
+    .game-container,
+    .ranking-container {
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .ranking-item {
+      background: white;
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-lg);
+    }
+
+    .ranking-position {
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--orange-500);
+      min-width: 40px;
+    }
+
+    .ranking-info {
+      flex: 1;
+    }
+
+    .ranking-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--navy-900);
+      margin-bottom: 2px;
+    }
+
+    .ranking-winrate {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .ranking-points {
+      text-align: right;
+    }
+
+    .ranking-points-value {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--navy-900);
+    }
+
+    .ranking-points-label {
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .question-box {
+      background: white;
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .question-text {
+      font-weight: 500;
+      font-size: 15px;
+      color: var(--navy-900);
+      margin: 0 0 var(--spacing-lg);
+    }
+
+    .button-group {
+      display: flex;
+      gap: var(--spacing-lg);
+    }
+
+    .button-group .button-primary,
+    .button-group .button-secondary {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .results-container {
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .result-box {
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+      max-width: 450px;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    .result-win {
+      background: linear-gradient(135deg, rgba(45, 155, 62, 0.1) 0%, rgba(45, 155, 62, 0.05) 100%);
+      border: 1px solid #2D9B3E;
+    }
+
+    .result-lose {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border: 1px solid #EF4444;
+    }
+
+    .result-box .emoji {
+      font-size: 60px;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .result-title {
+      font-size: 28px;
+      margin: 0 0 var(--spacing-md);
+      font-weight: 600;
+    }
+
+    .result-win .result-title {
+      color: #2D9B3E;
+    }
+
+    .result-lose .result-title {
+      color: #EF4444;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+      text-align: center;
+      background: rgba(0, 0, 0, 0.05);
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .score-item {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .score-value {
+      font-weight: 700;
+      font-size: 36px;
+      color: var(--navy-900);
+    }
+
+    .register-card {
+      background: linear-gradient(135deg, rgba(255, 179, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+      border: 2px solid var(--gold-400);
+      text-align: center;
+    }
+
+    .register-card h3 {
+      margin-top: 0;
+      color: var(--navy-900);
+    }
+
+    .register-card p {
+      margin: 0 0 var(--spacing-lg);
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      .login-title {
+        font-size: 36px;
+      }
+
+      .login-logo {
+        font-size: 60px;
+      }
+
+      .dashboard-container,
+      .game-container,
+      .ranking-container,
+      .results-container {
+        padding: var(--spacing-lg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Datos de preguntas
+    const questionsData = [
+      {
+        id: 'act1',
+        topic: 'Actualidad',
+        text: '¿Qué tecnología ha tenido un crecimiento acelerado desde 2023?',
+        options: ['Fax', 'Inteligencia Artificial Generativa', 'Disquetes', 'Pagers'],
+        correctAnswerIndex: 1,
+        justification: 'La IA generativa ha experimentado una rápida adopción.'
+      },
+      {
+        id: 'act2',
+        topic: 'Actualidad',
+        text: '¿Qué fenómeno está relacionado con el aumento de la temperatura promedio del planeta?',
+        options: ['Cambio climático', 'Lluvia ácida', 'Erosión', 'Tornados'],
+        correctAnswerIndex: 0,
+        justification: 'El cambio climático implica un calentamiento global sostenido.'
+      },
+      {
+        id: 'sci1',
+        topic: 'Ciencia y tecnología',
+        text: '¿Cuál es el planeta más cercano al Sol?',
+        options: ['Venus', 'Marte', 'Mercurio', 'Tierra'],
+        correctAnswerIndex: 2,
+        justification: 'Mercurio es el primer planeta del Sistema Solar.'
+      },
+      {
+        id: 'cin1',
+        topic: 'Cine y series',
+        text: '¿Qué premio es el más prestigioso del cine?',
+        options: ['Grammy', 'Óscar', 'Emmy', 'Tony'],
+        correctAnswerIndex: 1,
+        justification: 'Los Premios Óscar reconocen la excelencia cinematográfica.'
+      },
+      {
+        id: 'cul1',
+        topic: 'Cultura general',
+        text: '¿Quién escribió Don Quijote de la Mancha?',
+        options: ['Gabriel García Márquez', 'Miguel de Cervantes', 'Pablo Neruda', 'Federico García Lorca'],
+        correctAnswerIndex: 1,
+        justification: 'Cervantes publicó la obra en el siglo XVII.'
+      },
+      {
+        id: 'geo1',
+        topic: 'Geografía',
+        text: '¿Cuál es la capital de Argentina?',
+        options: ['Rosario', 'Córdoba', 'Buenos Aires', 'Mendoza'],
+        correctAnswerIndex: 2,
+        justification: 'Buenos Aires es la capital argentina.'
+      },
+      {
+        id: 'his1',
+        topic: 'Historia',
+        text: '¿Qué civilización construyó las pirámides de Guiza?',
+        options: ['Romanos', 'Egipcios', 'Mayas', 'Griegos'],
+        correctAnswerIndex: 1,
+        justification: 'Las pirámides de Guiza fueron construidas por el Antiguo Egipto.'
+      },
+      {
+        id: 'dep1',
+        topic: 'Deportes',
+        text: '¿Cuántos jugadores tiene un equipo de fútbol en el campo al iniciar el partido?',
+        options: ['9', '10', '11', '12'],
+        correctAnswerIndex: 2,
+        justification: 'Cada equipo juega con 11 futbolistas.'
+      },
+      {
+        id: 'act3',
+        topic: 'Actualidad',
+        text: '¿Qué significa ESG en finanzas sostenibles?',
+        options: ['Economía Sin Gobierno', 'Ambiental, Social y Gobierno', 'Energía Segura Global', 'Especial de Ganancias'],
+        correctAnswerIndex: 1,
+        justification: 'ESG son criterios de Ambiental, Social y Gobierno para inversiones sostenibles.'
+      },
+      {
+        id: 'act4',
+        topic: 'Actualidad',
+        text: '¿Cuál es la principal consecuencia del cambio climático en los océanos?',
+        options: ['Mayor cantidad de peces', 'Aumento del nivel del mar', 'Menos sal en el agua', 'Más oxígeno'],
+        correctAnswerIndex: 1,
+        justification: 'El calentamiento global causa expansión térmica y derretimiento de hielo polar, elevando el nivel del mar.'
+      },
+      {
+        id: 'act5',
+        topic: 'Actualidad',
+        text: '¿Qué es la inteligencia artificial generativa?',
+        options: ['Software que genera dinero', 'Máquinas que crean contenido nuevo', 'Algoritmos antiguos', 'Computadoras cuánticas'],
+        correctAnswerIndex: 1,
+        justification: 'La IA generativa es capaz de crear texto, imágenes y contenido nuevo a partir de datos de entrenamiento.'
+      },
+      {
+        id: 'sci6',
+        topic: 'Ciencia y tecnología',
+        text: '¿Cuántos cromosomas tiene un humano?',
+        options: ['23', '46', '48', '50'],
+        correctAnswerIndex: 1,
+        justification: 'Los humanos tienen 46 cromosomas (23 pares).'
+      },
+      {
+        id: 'sci7',
+        topic: 'Ciencia y tecnología',
+        text: '¿Qué es la fotosíntesis?',
+        options: ['Captura de luz para crear energía', 'Proceso de respiración', 'Reproducción de plantas', 'Descomposición'],
+        correctAnswerIndex: 0,
+        justification: 'La fotosíntesis es el proceso mediante el cual las plantas convierten luz en energía química.'
+      },
+      {
+        id: 'sci8',
+        topic: 'Ciencia y tecnología',
+        text: '¿Cuál es la velocidad del sonido en el aire?',
+        options: ['300 m/s', '340 m/s', '500 m/s', '100 m/s'],
+        correctAnswerIndex: 1,
+        justification: 'El sonido viaja aproximadamente a 340 metros por segundo en el aire.'
+      },
+      {
+        id: 'sci9',
+        topic: 'Ciencia y tecnología',
+        text: '¿Cuál es el gas más abundante en la atmósfera terrestre?',
+        options: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono', 'Helio'],
+        correctAnswerIndex: 1,
+        justification: 'El nitrógeno (N₂) representa aproximadamente el 78% de la atmósfera.'
+      },
+      {
+        id: 'cin6',
+        topic: 'Cine y series',
+        text: '¿Quién dirigió Inception?',
+        options: ['Steven Spielberg', 'Christopher Nolan', 'Martin Scorsese', 'Denis Villeneuve'],
+        correctAnswerIndex: 1,
+        justification: 'Christopher Nolan dirigió Inception en 2010.'
+      },
+      {
+        id: 'cin7',
+        topic: 'Cine y series',
+        text: '¿Cuál es el superhéroe principal del Universo Marvel?',
+        options: ['Batman', 'Superman', 'Iron Man / Spider-Man', 'Aquaman'],
+        correctAnswerIndex: 2,
+        justification: 'Aunque hay varios héroes principales, Iron Man y Spider-Man son centrales en el MCU.'
+      },
+      {
+        id: 'cin8',
+        topic: 'Cine y series',
+        text: '¿En qué año se estrenó Game of Thrones?',
+        options: ['2009', '2011', '2013', '2015'],
+        correctAnswerIndex: 1,
+        justification: 'Game of Thrones se estrenó el 17 de abril de 2011.'
+      },
+      {
+        id: 'cin9',
+        topic: 'Cine y series',
+        text: '¿Quién es el actor principal de la serie Breaking Bad?',
+        options: ['Aaron Paul', 'Bryan Cranston', 'Dean Norris', 'Giancarlo Esposito'],
+        correctAnswerIndex: 1,
+        justification: 'Bryan Cranston interpreta a Walter White, el protagonista principal de Breaking Bad.'
+      },
+      {
+        id: 'cul6',
+        topic: 'Cultura general',
+        text: '¿Cuántas sinfonías compuso Beethoven?',
+        options: ['5', '7', '9', '12'],
+        correctAnswerIndex: 2,
+        justification: 'Beethoven compuso 9 sinfonías, siendo la Novena la más famosa.'
+      },
+      {
+        id: 'cul7',
+        topic: 'Cultura general',
+        text: '¿Cuál es el museo más visitado del mundo?',
+        options: ['Prado', 'Louvre', 'Uffizi', 'Metropolitano'],
+        correctAnswerIndex: 1,
+        justification: 'El Museo del Louvre en París es el más visitado del mundo.'
+      },
+      {
+        id: 'cul8',
+        topic: 'Cultura general',
+        text: '¿Cuántas veces ha ganado el Premio Nobel Albert Einstein?',
+        options: ['0', '1', '2', '3'],
+        correctAnswerIndex: 1,
+        justification: 'Einstein ganó un Nobel en 1921, principalmente por el efecto fotoeléctrico.'
+      },
+      {
+        id: 'cul9',
+        topic: 'Cultura general',
+        text: '¿Cuál es el idioma más hablado del mundo?',
+        options: ['Inglés', 'Español', 'Mandarín', 'Hindi'],
+        correctAnswerIndex: 2,
+        justification: 'El mandarín es el idioma más hablado por número total de hablantes (nativos + no nativos).'
+      },
+      {
+        id: 'geo6',
+        topic: 'Geografía',
+        text: '¿Cuál es el país más grande del mundo por superficie?',
+        options: ['Canadá', 'China', 'Rusia', 'Estados Unidos'],
+        correctAnswerIndex: 2,
+        justification: 'Rusia es el país más grande del mundo con más de 17 millones de km².'
+      },
+      {
+        id: 'geo7',
+        topic: 'Geografía',
+        text: '¿Cuál es la montaña más alta del mundo?',
+        options: ['K2', 'Denali', 'Monte Everest', 'Kangchenjunga'],
+        correctAnswerIndex: 2,
+        justification: 'El Monte Everest es la montaña más alta con 8,849 metros.'
+      },
+      {
+        id: 'geo8',
+        topic: 'Geografía',
+        text: '¿Cuántos océanos hay en la Tierra?',
+        options: ['3', '4', '5', '7'],
+        correctAnswerIndex: 2,
+        justification: 'Hay 5 océanos: Atlántico, Pacífico, Índico, Ártico y Antártico.'
+      },
+      {
+        id: 'geo9',
+        topic: 'Geografía',
+        text: '¿Cuál es la capital de Japón?',
+        options: ['Osaka', 'Tokio', 'Kioto', 'Hiroshima'],
+        correctAnswerIndex: 1,
+        justification: 'Tokio es la capital y ciudad más poblada de Japón.'
+      },
+      {
+        id: 'his2',
+        topic: 'Historia',
+        text: '¿En qué año terminó la Segunda Guerra Mundial?',
+        options: ['1943', '1944', '1945', '1946'],
+        correctAnswerIndex: 2,
+        justification: 'La Segunda Guerra Mundial terminó el 2 de septiembre de 1945.'
+      },
+      {
+        id: 'his3',
+        topic: 'Historia',
+        text: '¿Quién fue el primer presidente de Estados Unidos?',
+        options: ['Thomas Jefferson', 'George Washington', 'John Adams', 'Benjamin Franklin'],
+        correctAnswerIndex: 1,
+        justification: 'George Washington fue el primer presidente de Estados Unidos (1789-1797).'
+      },
+      {
+        id: 'his4',
+        topic: 'Historia',
+        text: '¿En qué año se firmó la Declaración de Independencia de EE.UU.?',
+        options: ['1774', '1776', '1778', '1781'],
+        correctAnswerIndex: 1,
+        justification: 'La Declaración de Independencia se firmó el 4 de julio de 1776.'
+      },
+      {
+        id: 'his5',
+        topic: 'Historia',
+        text: '¿Quién fue Cleopatra?',
+        options: ['Reina griega', 'Reina de Egipto', 'Emperatriz romana', 'Diosa del Nilo'],
+        correctAnswerIndex: 1,
+        justification: 'Cleopatra VII fue la última reina activa del Imperio Ptolemaico de Egipto.'
+      },
+      {
+        id: 'dep2',
+        topic: 'Deportes',
+        text: '¿Cada cuántos años se celebra el Super Bowl?',
+        options: ['Cada año', 'Cada 2 años', 'Cada 4 años', 'Cada 5 años'],
+        correctAnswerIndex: 0,
+        justification: 'El Super Bowl se juega cada año, el primer domingo de febrero.'
+      },
+      {
+        id: 'dep3',
+        topic: 'Deportes',
+        text: '¿Cuánto tiempo dura un partido de tenis profesional como máximo?',
+        options: ['2 horas', '3 horas', '5 horas', 'No hay límite'],
+        correctAnswerIndex: 3,
+        justification: 'No hay límite de tiempo en el tenis profesional, algunos partidos duran más de 5 horas.'
+      },
+      {
+        id: 'dep4',
+        topic: 'Deportes',
+        text: '¿Cuál es el deporte más popular en el mundo?',
+        options: ['Baloncesto', 'Críquet', 'Fútbol', 'Tenis'],
+        correctAnswerIndex: 2,
+        justification: 'El fútbol es el deporte más popular en el mundo con más de 3 mil millones de aficionados.'
+      },
+      {
+        id: 'dep5',
+        topic: 'Deportes',
+        text: '¿Cuál es la principal competencia de tenis del hemisferio sur?',
+        options: ['Wimbledon', 'Australian Open', 'Roland Garros', 'US Open'],
+        correctAnswerIndex: 1,
+        justification: 'El Australian Open es el Grand Slam del hemisferio sur, jugado en enero en Melbourne.'
+      }
+    ];
+
+    const topicsList = ['Actualidad', 'Ciencia y tecnología', 'Cine y series', 'Cultura general', 'Geografía', 'Historia', 'Deportes'];
+
+    function getQuestionsByTopic(topic) {
+      const filtered = questionsData.filter(q => q.topic === topic);
+      if (filtered.length < 5) {
+        console.warn(`Advertencia: Solo hay ${filtered.length} preguntas para ${topic}, se necesitan 5`);
+      }
+      return filtered.slice(0, 5);
+    }
+
+    function createSampleUser(name) {
+      return {
+        id: `user-${Date.now()}-${Math.random()}`,
+        name: name,
+        winRate: Math.floor(Math.random() * 100),
+        emoji: ['👨', '👩', '👦', '👧'][Math.floor(Math.random() * 4)]
+      };
+    }
+
+    // Estado de la aplicación
+    const state = {
+      screen: 'login',
+      loginTab: 'session',
+      currentUser: null,
+      currentGroup: null,
+      inviteCode: null,
+      selectedTopic: null,
+      selectedRival: null,
+      currentQuestionIndex: 0,
+      answers: Array(5).fill(null),
+      userScore: 0,
+      rivalScore: 0,
+      resultUserWon: false,
+      isLoggedIn: false,
+      currentQuestions: [],
+      isRankingMode: false,
+      matchmakingStatus: 'idle',
+      globalRanking: [
+        { name: 'Carlos', points: 1000, winRate: 85 },
+        { name: 'María', points: 900, winRate: 80 },
+        { name: 'Juan', points: 800, winRate: 75 },
+        { name: 'Sofia', points: 700, winRate: 70 },
+        { name: 'Diego', points: 600, winRate: 65 },
+        { name: 'Roberto', points: 550, winRate: 72 },
+        { name: 'Ana', points: 500, winRate: 68 },
+        { name: 'Luis', points: 450, winRate: 60 }
+      ]
+    };
+
+    // Funciones
+    function setState(updates) {
+      Object.assign(state, updates);
+      render();
+    }
+
+    function switchTab(tab) {
+      setState({ loginTab: tab });
+    }
+
+    function handleSessionLogin() {
+      const username = document.getElementById('sessionUsername')?.value;
+      const password = document.getElementById('sessionPassword')?.value;
+      if (!username || !password) {
+        alert('Por favor completa todos los campos');
+        return;
+      }
+      setState({
+        screen: 'dashboard',
+        currentUser: { name: username, id: `user-${Date.now()}`, winRate: 60, emoji: '👤' },
+        isLoggedIn: true,
+        currentGroup: {
+          name: 'Mi grupo',
+          code: 'GRUPO001',
+          members: [
+            { name: username, id: `user-${Date.now()}`, winRate: 60, emoji: '👤' },
+            createSampleUser('María'),
+            createSampleUser('Juan'),
+            createSampleUser('Sofia')
+          ]
+        },
+        loginTab: 'session'
+      });
+      localStorage.setItem('quizCombatUser', username);
+    }
+
+    function handleSessionRegister() {
+      handleSessionLogin();
+    }
+
+    function handleCreateGroup() {
+      const groupName = document.getElementById('groupName')?.value;
+      const userName = document.getElementById('userName')?.value;
+      if (!groupName || !userName) {
+        alert('Por favor completa todos los campos');
+        return;
+      }
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      setState({
+        screen: 'invite-code',
+        inviteCode: code,
+        currentGroup: { name: groupName, code, members: [{ name: userName, id: `user-${Date.now()}`, winRate: 50, emoji: '👤' }] },
+        currentUser: { name: userName, id: `user-${Date.now()}`, winRate: 50, emoji: '👤' },
+        isLoggedIn: false
+      });
+    }
+
+    function handleJoinGroup() {
+      const code = document.getElementById('joinCode')?.value;
+      const name = document.getElementById('joinName')?.value;
+      if (!code || !name) {
+        alert('Por favor completa todos los campos');
+        return;
+      }
+      setState({
+        screen: 'dashboard',
+        currentUser: { name, id: `user-${Date.now()}`, winRate: 50, emoji: '👤' },
+        currentGroup: {
+          name: `Grupo ${code}`,
+          code,
+          members: [
+            { name, id: `user-${Date.now()}`, winRate: 50, emoji: '👤' },
+            createSampleUser('María'),
+            createSampleUser('Juan'),
+            createSampleUser('Sofia')
+          ]
+        },
+        isLoggedIn: false
+      });
+    }
+
+    function handleCopyCode() {
+      if (state.inviteCode) {
+        navigator.clipboard.writeText(state.inviteCode);
+        alert('Código copiado al portapapeles');
+      }
+    }
+
+    function handleJoinRanking() {
+      const playerName = document.getElementById('rankingPlayerName')?.value;
+      if (!playerName) {
+        alert('Por favor ingresa tu nombre');
+        return;
+      }
+      setState({
+        screen: 'ranking',
+        currentUser: { name: playerName, id: `ranking-${Date.now()}`, winRate: 50, emoji: '👤' },
+        isLoggedIn: false,
+        isRankingMode: true
+      });
+    }
+
+    function startAutoMatchmaking() {
+      setState({ matchmakingStatus: 'matching' });
+
+      // Simular búsqueda de rival (2 segundos)
+      setTimeout(() => {
+        const allRivals = state.globalRanking.filter(p => p.name !== state.currentUser?.name);
+        const randomRival = allRivals[Math.floor(Math.random() * allRivals.length)];
+
+        // Seleccionar tema aleatorio
+        const randomTopic = topicsList[Math.floor(Math.random() * topicsList.length)];
+
+        setState({
+          screen: 'game',
+          selectedRival: randomRival,
+          selectedTopic: randomTopic,
+          currentQuestionIndex: 0,
+          answers: Array(5).fill(null),
+          matchmakingStatus: 'matched',
+          isRankingMode: true,
+          currentQuestions: getQuestionsByTopic(randomTopic)
+        });
+      }, 2000);
+    }
+
+    function cancelMatchmaking() {
+      setState({
+        screen: 'ranking',
+        matchmakingStatus: 'idle'
+      });
+    }
+
+    function handleShowRankingJoin() {
+      setState({ screen: 'ranking-join' });
+    }
+
+    function backToLogin() {
+      setState({
+        screen: 'login',
+        currentUser: null,
+        currentGroup: null,
+        inviteCode: null,
+        loginTab: 'session'
+      });
+    }
+
+    function logout() {
+      backToLogin();
+      localStorage.removeItem('quizCombatUser');
+    }
+
+    function selectTopic(topicName) {
+      if (state.selectedTopic === topicName) {
+        setState({ selectedTopic: null, selectedRival: null });
+      } else {
+        setState({ selectedTopic: topicName, selectedRival: null, currentQuestions: getQuestionsByTopic(topicName) });
+      }
+    }
+
+    function selectRival(rivalName) {
+      const rival = state.currentGroup?.members.find(m => m.name === rivalName);
+      if (rival) {
+        if (state.selectedRival?.name === rival.name) {
+          setState({ selectedRival: null, currentQuestions: state.currentQuestions });
+        } else {
+          setState({ selectedRival: rival, currentQuestions: state.currentQuestions });
+        }
+      }
+    }
+
+    function startDuel() {
+      if (!state.selectedTopic || !state.selectedRival) {
+        alert('Por favor selecciona un tema y un rival');
+        return;
+      }
+      const questionsForTopic = getQuestionsByTopic(state.selectedTopic);
+      setState({
+        screen: 'game',
+        currentQuestionIndex: 0,
+        answers: Array(5).fill(null),
+        currentQuestions: questionsForTopic,
+        isRankingMode: false
+      });
+    }
+
+    function selectAnswer(questionIndex, answerIndex) {
+      const answers = [...state.answers];
+      answers[questionIndex] = answerIndex;
+      setState({ answers });
+    }
+
+    function nextQuestion() {
+      if (state.currentQuestionIndex < 4) {
+        setState({
+          currentQuestionIndex: state.currentQuestionIndex + 1,
+          currentQuestions: state.currentQuestions,
+          selectedTopic: state.selectedTopic,
+          selectedRival: state.selectedRival,
+          answers: state.answers
+        });
+      }
+    }
+
+    function prevQuestion() {
+      if (state.currentQuestionIndex > 0) {
+        setState({
+          currentQuestionIndex: state.currentQuestionIndex - 1,
+          currentQuestions: state.currentQuestions,
+          selectedTopic: state.selectedTopic,
+          selectedRival: state.selectedRival,
+          answers: state.answers
+        });
+      }
+    }
+
+    function submitDuel() {
+      let userScore = 0;
+      for (let i = 0; i < state.currentQuestions.length; i++) {
+        if (state.answers[i] === state.currentQuestions[i].correctAnswerIndex) {
+          userScore++;
+        }
+      }
+      const rivalScore = Math.floor(Math.random() * 5);
+      setState({
+        screen: 'results',
+        userScore,
+        rivalScore,
+        resultUserWon: userScore > rivalScore,
+        isRankingMode: state.isRankingMode
+      });
+    }
+
+    function backToRanking() {
+      setState({
+        screen: 'ranking',
+        selectedTopic: null,
+        selectedRival: null,
+        currentQuestionIndex: 0,
+        answers: Array(5).fill(null),
+        matchmakingStatus: 'idle'
+      });
+    }
+
+    function backToDashboard() {
+      setState({
+        screen: 'dashboard',
+        selectedTopic: null,
+        selectedRival: null,
+        currentQuestionIndex: 0,
+        answers: Array(5).fill(null)
+      });
+    }
+
+    function goToDashboard() {
+      setState({ screen: 'dashboard' });
+    }
+
+    // Render
+    function render() {
+      const root = document.getElementById('root');
+      root.innerHTML = '';
+
+      if (state.screen === 'login') {
+        root.innerHTML = `
+          <div class="login-container">
+            <div class="float-shape"></div>
+            <div class="float-shape"></div>
+            <div class="login-center">
+              <div class="login-logo">⚔️</div>
+              <h1 class="login-title">Quiz Combat</h1>
+              <p class="login-subtitle">Desafía a otros en batallas de conocimiento</p>
+              <div class="login-box">
+                <div class="tab-content ${state.loginTab === 'session' ? 'active' : ''}">
+                  <h2>Accede a tu cuenta</h2>
+                  <input type="text" id="sessionUsername" placeholder="Tu username">
+                  <input type="password" id="sessionPassword" placeholder="Contraseña">
+                  <button class="button-primary" onclick="handleSessionLogin()">Iniciar sesión</button>
+                  <div class="tab-switch">¿No tienes cuenta? <button class="tab-link" onclick="switchTab('register')">Regístrate</button></div>
+                  <button class="button-secondary" onclick="switchTab('group')">Entra sin cuenta</button>
+                  <button class="button-secondary" onclick="handleShowRankingJoin()">Jugar en Ranking Global 🏆</button>
+                </div>
+
+                <div class="tab-content ${state.loginTab === 'register' ? 'active' : ''}">
+                  <h2>Crea tu cuenta</h2>
+                  <input type="text" id="registerUsername" placeholder="Tu username">
+                  <input type="password" id="registerPassword" placeholder="Contraseña">
+                  <button class="button-primary" onclick="handleSessionRegister()">Crear cuenta</button>
+                  <button class="button-secondary" onclick="switchTab('session')">Volver a login</button>
+                </div>
+
+                <div class="tab-content ${state.loginTab === 'group' ? 'active' : ''}">
+                  <h2>Acceso a grupo</h2>
+                  <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">¿Ya tienes grupo?</p>
+                  <input type="text" id="joinCode" placeholder="Código">
+                  <input type="text" id="joinName" placeholder="Tu nombre">
+                  <button class="button-secondary" onclick="handleJoinGroup()" style="margin-bottom: var(--spacing-lg);">Unirme</button>
+
+                  <div class="divider">O</div>
+
+                  <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">Crear grupo</p>
+                  <input type="text" id="groupName" placeholder="Nombre grupo">
+                  <input type="text" id="userName" placeholder="Tu nombre">
+                  <button class="button-primary" onclick="handleCreateGroup()">Crear</button>
+                  <button class="button-secondary" onclick="switchTab('session')">Volver al login</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'ranking-join') {
+        root.innerHTML = `
+          <div class="login-container">
+            <div class="login-center">
+              <div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🏆</div>
+              <h1 class="login-title">Ranking Global</h1>
+              <p class="login-subtitle">Compite con jugadores de todo el mundo</p>
+              <div class="login-box">
+                <h2>Ingresa tu nombre</h2>
+                <input type="text" id="rankingPlayerName" placeholder="Tu nombre">
+                <button class="button-primary" onclick="handleJoinRanking()">Jugar</button>
+                <button class="button-secondary" onclick="backToLogin()">Volver</button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'invite-code') {
+        root.innerHTML = `
+          <div class="login-container">
+            <div class="login-center">
+              <div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🎉</div>
+              <h1 class="login-title">¡Grupo creado!</h1>
+              <div class="login-box">
+                <p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Tu código</p>
+                <div style="font-size: 36px; letter-spacing: 4px; margin-bottom: var(--spacing-lg); color: var(--orange-500); font-weight: 700; font-family: monospace;">${state.inviteCode}</div>
+                <button class="button-primary" onclick="handleCopyCode()">Copiar código</button>
+                <button class="button-secondary" onclick="goToDashboard()">Continuar</button>
+                <button class="button-secondary" onclick="backToLogin()">Volver</button>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'ranking') {
+        root.innerHTML = `
+          <div class="ranking-container">
+            <div class="header">
+              <h1 style="margin: 0;">🏆 Ranking Global</h1>
+              <p style="margin: var(--spacing-md) 0 0 0;">Eres <strong>${state.currentUser?.name}</strong></p>
+            </div>
+
+            <div style="background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-xl); border: 1px solid var(--gold-400); text-align: center;">
+              <div style="font: 600 12px var(--font-body); color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--spacing-md);">⚡ Emparejamiento automático</div>
+              <p style="margin: 0 0 var(--spacing-lg); color: var(--text-secondary); font-size: 13px;">Juega sin necesidad de retar. El sistema te empareja automáticamente con un rival aleatorio y tema random.</p>
+              <button class="button-primary" onclick="startAutoMatchmaking()" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); margin-bottom: 0;">⚡ Jugar Ahora</button>
+            </div>
+
+            <h2 style="font: 600 14px var(--font-display); color: var(--navy-900); margin: var(--spacing-xl) 0 var(--spacing-lg);">Top Jugadores</h2>
+
+            <div class="ranking-list">
+              ${state.globalRanking.map((player, i) => `
+                <div class="ranking-item" style="${state.currentUser?.name === player.name ? 'background: rgba(255, 165, 0, 0.1); border: 2px solid var(--orange-500);' : ''}">
+                  <div class="ranking-position">${i + 1}</div>
+                  <div class="ranking-info">
+                    <div class="ranking-name">${player.name} ${state.currentUser?.name === player.name ? '👈 TÚ' : ''}</div>
+                    <div class="ranking-winrate">Win Rate: ${Math.round(player.winRate)}%</div>
+                  </div>
+                  <div class="ranking-points">
+                    <div class="ranking-points-value">${player.points}</div>
+                    <div class="ranking-points-label">puntos</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+              <button class="button-secondary" onclick="backToLogin()" style="flex: 1;">Volver</button>
+              <button class="button-secondary" onclick="goToDashboard()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Mi Perfil</button>
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'dashboard') {
+        root.innerHTML = `
+          <div class="dashboard-container">
+            <div class="header">
+              <h1 style="margin: 0 0 var(--spacing-sm);">⚔️ Quiz Combat</h1>
+              <p>${state.currentUser?.name || 'Jugador'} ${state.currentGroup ? '• ' + state.currentGroup.name : ''}</p>
+            </div>
+
+            ${state.isLoggedIn ? `
+              <div class="stats-box">
+                <div class="stats-grid">
+                  <div>
+                    <div class="stat-item">Tu win rate</div>
+                    <div class="stat-value">${state.currentUser?.winRate || 0}%</div>
+                  </div>
+                  <div>
+                    <div class="stat-item">Duelos hoy</div>
+                    <div class="stat-value">0/3</div>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="register-card">
+                <h3>📊 Guarda tu progreso</h3>
+                <p>Crea una cuenta para ver tus estadísticas, ranking y más.</p>
+                <button class="button-secondary" onclick="switchTab('session')" style="border-color: var(--orange-500); color: var(--orange-500);">Crear cuenta gratuita</button>
+              </div>
+            `}
+
+            <h2 class="section-title">📚 Elige tema</h2>
+            ${topicsList.map(topic => `
+              <div class="card ${state.selectedTopic === topic ? 'selected' : ''}" onclick="selectTopic('${topic}')">
+                <div class="card-title">${topic}</div>
+              </div>
+            `).join('')}
+
+            ${state.selectedTopic ? `
+              <h2 class="section-title">⚔️ Elige rival</h2>
+              ${state.currentGroup?.members.filter(m => m.name !== state.currentUser?.name).map(rival => `
+                <div class="card ${state.selectedRival?.name === rival.name ? 'selected' : ''}" onclick="selectRival('${rival.name}')">
+                  <div class="rival-item">
+                    <div class="rival-emoji">${rival.emoji}</div>
+                    <div class="rival-details">
+                      <div class="card-title">${rival.name}</div>
+                      <div class="card-subtitle">${rival.winRate}% victorias</div>
+                    </div>
+                    <div class="badge-box ${state.selectedRival?.name === rival.name ? 'active' : ''}">Seleccionar</div>
+                  </div>
+                </div>
+              `).join('')}
+
+              ${state.selectedRival ? `
+                <button class="button-primary" onclick="startDuel()">Comenzar duelo ⚔️</button>
+              ` : ''}
+            ` : ''}
+
+            <button class="button-secondary" onclick="logout()">Salir</button>
+          </div>
+        `;
+      } else if (state.screen === 'game' && state.matchmakingStatus === 'matching') {
+        root.innerHTML = `
+          <div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, var(--orange-500) 0%, #FF5733 100%); color: white; padding: var(--spacing-xl);">
+            <div style="text-align: center;">
+              <div style="font-size: 60px; margin-bottom: var(--spacing-lg); animation: bounce 2s ease-in-out infinite;">🔍</div>
+              <h1 style="font: 700 32px var(--font-display); margin: 0 0 var(--spacing-md);">Buscando rival...</h1>
+              <p style="font: 500 16px var(--font-body); opacity: 0.95; margin: 0 0 var(--spacing-xl);">Se encuentra el mejor rival para ti</p>
+
+              <div style="background: rgba(255, 255, 255, 0.2); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+                <div style="display: flex; gap: var(--spacing-lg); justify-content: center; margin-bottom: var(--spacing-lg);">
+                  <div style="width: 20px; height: 20px; background: white; border-radius: 50%; animation: pulse 1.5s infinite;"></div>
+                  <div style="width: 20px; height: 20px; background: white; border-radius: 50%; animation: pulse 1.5s infinite 0.3s;"></div>
+                  <div style="width: 20px; height: 20px; background: white; border-radius: 50%; animation: pulse 1.5s infinite 0.6s;"></div>
+                </div>
+                <p style="margin: 0; font-size: 12px; opacity: 0.9;">Tema aleatorio • Rival diferente cada vez</p>
+              </div>
+
+              <button class="button-secondary" onclick="cancelMatchmaking()" style="background: white; color: var(--orange-500); border-color: white; max-width: 300px; margin: 0 auto;">Cancelar</button>
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'game') {
+        // Verificar que currentQuestions está disponible
+        if (!state.currentQuestions || state.currentQuestions.length === 0) {
+          console.error('Error: currentQuestions no disponible', {
+            currentQuestions: state.currentQuestions,
+            selectedTopic: state.selectedTopic,
+            currentQuestionIndex: state.currentQuestionIndex
+          });
+          root.innerHTML = `
+            <div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);">
+              <div style="text-align: center;">
+                <div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div>
+                <h1 style="font: 700 28px var(--font-display); margin: 0 0 var(--spacing-md);">Error al cargar preguntas</h1>
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">No se pudieron cargar las preguntas. Por favor, vuelve e intenta de nuevo.</p>
+                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: var(--spacing-lg);">Tema: ${state.selectedTopic || 'No seleccionado'}</p>
+                <button class="button-primary" onclick="backToDashboard()">Volver al Dashboard</button>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        const q = state.currentQuestions[state.currentQuestionIndex];
+        if (!q) {
+          console.error('Error: pregunta no disponible', {
+            currentQuestionIndex: state.currentQuestionIndex,
+            totalQuestions: state.currentQuestions.length,
+            questions: state.currentQuestions
+          });
+          root.innerHTML = `
+            <div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);">
+              <div style="text-align: center;">
+                <div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div>
+                <h1 style="font: 700 28px var(--font-display); margin: 0 0 var(--spacing-md);">Error al cargar pregunta</h1>
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg);">No se pudo cargar la pregunta ${state.currentQuestionIndex + 1}.</p>
+                <button class="button-primary" onclick="backToDashboard()">Volver al Dashboard</button>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        const progressBars = Array(5).fill(0).map((_, i) => i <= state.currentQuestionIndex);
+
+        root.innerHTML = `
+          <div class="game-container">
+            <div class="header" style="padding: var(--spacing-lg);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                <div class="game-question-number">Pregunta ${state.currentQuestionIndex + 1}/5</div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                  <div class="game-vs">vs ${state.selectedRival?.name}</div>
+                  <div style="font-size: 11px; opacity: 0.8; font-weight: 500;">Tema: ${state.selectedTopic} ${state.isRankingMode ? '🏆' : ''}</div>
+                </div>
+              </div>
+              <div class="progress-bar">
+                ${progressBars.map(filled => `<div class="progress-segment ${filled ? 'filled' : ''}"></div>`).join('')}
+              </div>
+            </div>
+
+            <div class="question-box">
+              <p class="question-text">${q.text}</p>
+              <div class="option-container">
+                ${q.options.map((option, i) => `
+                  <button class="option-button ${state.answers[state.currentQuestionIndex] === i ? 'selected' : ''}" onclick="selectAnswer(${state.currentQuestionIndex}, ${i})">
+                    ${option}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="button-group">
+              <button class="button-secondary" onclick="prevQuestion()" ${state.currentQuestionIndex === 0 ? 'disabled' : ''}>← Atrás</button>
+              ${state.currentQuestionIndex < 4 ? `
+                <button class="button-primary" onclick="nextQuestion()">Siguiente →</button>
+              ` : `
+                <button class="button-primary" onclick="submitDuel()">Enviar ✓</button>
+              `}
+            </div>
+          </div>
+        `;
+      } else if (state.screen === 'results') {
+        const nextButtonText = state.isRankingMode ? '⚡ Otro Duelo' : 'Volver al Dashboard';
+        const nextFunction = state.isRankingMode ? 'startAutoMatchmaking()' : 'backToDashboard()';
+
+        root.innerHTML = `
+          <div class="results-container">
+            <div class="result-box ${state.resultUserWon ? 'result-win' : 'result-lose'}">
+              <div class="emoji">${state.resultUserWon ? '🎉' : '😢'}</div>
+              <h1 class="result-title">${state.resultUserWon ? '¡Ganaste!' : 'Perdiste'}</h1>
+
+              ${state.isRankingMode ? `
+                <div style="background: rgba(255, 165, 0, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg); margin-bottom: var(--spacing-lg); font-size: 12px; color: var(--text-secondary);">
+                  <strong>Duelo de Ranking</strong><br/>
+                  Ganaste ${state.userScore} de 5 puntos contra ${state.selectedRival?.name}
+                </div>
+              ` : ''}
+
+              <div class="score-grid">
+                <div>
+                  <div class="score-item">Tu score</div>
+                  <div class="score-value" style="color: ${state.resultUserWon ? '#2D9B3E' : 'var(--text-secondary)'}">${state.userScore}</div>
+                </div>
+                <div>
+                  <div class="score-item">${state.selectedRival?.name}</div>
+                  <div class="score-value" style="color: ${!state.resultUserWon ? '#EF4444' : 'var(--text-secondary)'}">${state.rivalScore}</div>
+                </div>
+              </div>
+              <button class="button-primary" onclick="${nextFunction}" style="${state.isRankingMode ? 'background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);' : ''}">${nextButtonText}</button>
+              ${state.isRankingMode ? `<button class="button-secondary" onclick="backToRanking()">Ver Ranking</button>` : ''}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Inicializar
+    render();
+  </script>
+</body>
+</html>
