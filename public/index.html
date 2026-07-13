@@ -120,35 +120,20 @@ let sb = null;
 const SUPABASE_URL = 'https://qukuudhptrqwnuzhxxfb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a3V1ZGhwdHJxd256aHh4ZmIiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODE4NTAxNywiZXhwIjoxNzY5NzIxMDE3fQ.G4YCqpKbwqPyJDCqF1E9g6o4Wfso0Zw8EI1jdqM1z4U';
 
-function initSupabase() {
-  if (window.supabase && !sb) {
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    return true;
+function getSupabase() {
+  if (!sb && window.supabase && window.supabase.createClient) {
+    try {
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+      console.error('Failed to create Supabase client:', e);
+    }
   }
-  return false;
+  return sb;
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    let attempts = 0;
-    const checkSupabase = setInterval(() => {
-      if (initSupabase()) {
-        clearInterval(checkSupabase);
-      }
-      attempts++;
-      if (attempts > 50) clearInterval(checkSupabase);
-    }, 100);
-  });
-} else {
-  let attempts = 0;
-  const checkSupabase = setInterval(() => {
-    if (initSupabase()) {
-      clearInterval(checkSupabase);
-    }
-    attempts++;
-    if (attempts > 50) clearInterval(checkSupabase);
-  }, 100);
-}
+setTimeout(() => {
+  getSupabase();
+}, 2000);
 
 const questionsData = [
   {id:'act1',topic:'Actualidad',text:'¿Qué tecnología ha tenido un crecimiento acelerado desde 2023?',options:['Fax','Inteligencia Artificial Generativa','Disquetes','Pagers'],correctAnswerIndex:1,justification:'La IA generativa ha experimentado una rápida adopción.'},
@@ -199,17 +184,19 @@ async function handleSessionLogin() {
   const u = document.getElementById('sessionUsername')?.value;
   const p = document.getElementById('sessionPassword')?.value;
   if (!u || !p) return showMessage('error', 'Por favor completa todos los campos');
-  if (!supabase) return showMessage('error', 'Supabase aún está cargando...');
 
   setState({loading: true});
+  const client = getSupabase();
+  if (!client) return (setState({loading: false}), showMessage('error', 'Supabase aún está cargando...'));
+
   try {
-    const {data, error} = await supabase.auth.signInWithPassword({email: u + '@quiz-combat.local', password: p});
+    const {data, error} = await client.auth.signInWithPassword({email: u + '@quiz-combat.local', password: p});
     if (error) {
       setState({loading: false});
       return showMessage('error', error.message || 'Error al iniciar sesión');
     }
 
-    const {data: userProfile} = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+    const {data: userProfile} = await client.from('profiles').select('*').eq('id', data.user.id).single();
     setState({
       screen: 'dashboard',
       currentUser: {name: userProfile?.username || u, id: data.user.id, winRate: 60, emoji:'👤'},
@@ -231,17 +218,19 @@ async function handleSessionRegister() {
   const p = document.getElementById('registerPassword')?.value;
   if (!u || !p) return showMessage('error', 'Por favor completa todos los campos');
   if (p.length < 6) return showMessage('error', 'La contraseña debe tener al menos 6 caracteres');
-  if (!supabase) return showMessage('error', 'Supabase aún está cargando...');
 
   setState({loading: true});
+  const client = getSupabase();
+  if (!client) return (setState({loading: false}), showMessage('error', 'Supabase aún está cargando...'));
+
   try {
-    const {data, error} = await supabase.auth.signUp({email: u + '@quiz-combat.local', password: p});
+    const {data, error} = await client.auth.signUp({email: u + '@quiz-combat.local', password: p});
     if (error) {
       setState({loading: false});
       return showMessage('error', error.message || 'Error al crear cuenta');
     }
 
-    const {error: insertError} = await supabase.from('profiles').insert([{id: data.user.id, username: u}]);
+    const {error: insertError} = await client.from('profiles').insert([{id: data.user.id, username: u}]);
     if (insertError) throw insertError;
 
     setState({loading: false});
@@ -289,8 +278,9 @@ function cancelMatchmaking() { setState({screen:'ranking', matchmakingStatus:'id
 function handleShowRankingJoin() { setState({screen:'ranking-join'}); }
 
 async function logout() {
-  if (supabase) {
-    await supabase.auth.signOut();
+  const client = getSupabase();
+  if (client) {
+    await client.auth.signOut();
   }
   setState({screen:'login', currentUser:null, currentGroup:null, inviteCode:null, isLoggedIn:false, loginTab:'session'});
   localStorage.removeItem('quizCombatUser');
