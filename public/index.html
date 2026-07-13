@@ -311,15 +311,15 @@ function handleCreateGroup() {
   if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
   const c = Math.random().toString(36).substring(2,8).toUpperCase();
   let newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
-  console.log('🟢 Creando grupo con usuario:', u);
-  const savedStats = loadUserStats(c, u);
-  if (savedStats) {
-    console.log('✅ Stats encontradas y cargadas:', savedStats);
-    newUser = {...newUser, ...savedStats};
-  } else {
-    console.log('❌ No hay stats guardadas para:', u);
-  }
   setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[newUser]},currentUser:newUser,isLoggedIn:false});
+
+  // Cargar stats desde Supabase en background
+  loadUserStats(c, u).then(savedStats => {
+    if (savedStats) {
+      console.log('✅ Stats cargadas de Supabase:', savedStats);
+      setState({currentUser: {...newUser, ...savedStats}});
+    }
+  });
 }
 
 function handleJoinGroup() {
@@ -327,15 +327,15 @@ function handleJoinGroup() {
   const n = document.getElementById('joinName')?.value;
   if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
   let newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
-  console.log('🔷 Intentando cargar stats para:', n);
-  const savedStats = loadUserStats(c, n);
-  if (savedStats) {
-    console.log('✅ Stats encontradas y cargadas:', savedStats);
-    newUser = {...newUser, ...savedStats};
-  } else {
-    console.log('❌ No hay stats guardadas para:', n);
-  }
   setState({screen:'dashboard',currentUser:newUser,currentGroup:{name:`Grupo ${c}`,code:c,members:[newUser,createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
+
+  // Cargar stats desde Supabase en background
+  loadUserStats(c, n).then(savedStats => {
+    if (savedStats) {
+      console.log('✅ Stats cargadas de Supabase:', savedStats);
+      setState({currentUser: {...newUser, ...savedStats}});
+    }
+  });
 }
 
 function handleCopyCode() { state.inviteCode && (navigator.clipboard.writeText(state.inviteCode), alert('Código copiado al portapapeles')); }
@@ -367,22 +367,64 @@ async function logout() {
   localStorage.removeItem('quizCombatUser');
 }
 
-function saveUserStats(groupCode, userName, userObj) {
-  const key = `user-stats-${userName}`;
-  const dataToSave = {...userObj, savedAt: Date.now(), groupCode};
-  localStorage.setItem(key, JSON.stringify(dataToSave));
-  console.log('✅ Stats guardadas:', key, dataToSave);
+async function saveUserStats(groupCode, userName, userObj) {
+  const client = getSupabase();
+  if (!client) return;
+
+  try {
+    const { error } = await client.from('group_stats').upsert({
+      group_code: groupCode,
+      user_name: userName,
+      total_duels: userObj.totalDuels || 0,
+      total_wins: userObj.totalWins || 0,
+      points: userObj.points || 0,
+      win_rate: userObj.winRate || 0,
+      updated_at: new Date().toISOString()
+    }, {onConflict: 'group_code,user_name'});
+
+    if (error) {
+      console.log('❌ Error guardando stats en Supabase:', error);
+    } else {
+      console.log('✅ Stats guardadas en Supabase:', {groupCode, userName, ...userObj});
+    }
+  } catch(e) {
+    console.log('❌ Error en saveUserStats:', e);
+  }
 }
 
-function loadUserStats(groupCode, userName) {
-  const key = `user-stats-${userName}`;
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    const data = JSON.parse(saved);
-    console.log('✅ Stats cargadas:', key, data);
-    return data;
+async function loadUserStats(groupCode, userName) {
+  const client = getSupabase();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client
+      .from('group_stats')
+      .select('*')
+      .eq('group_code', groupCode)
+      .eq('user_name', userName)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.log('❌ Error cargando stats:', error);
+      return null;
+    }
+
+    if (data) {
+      console.log('✅ Stats cargadas de Supabase:', data);
+      return {
+        totalDuels: data.total_duels,
+        totalWins: data.total_wins,
+        points: data.points,
+        winRate: data.win_rate
+      };
+    }
+
+    console.log('❌ No hay stats guardadas para:', userName);
+    return null;
+  } catch(e) {
+    console.log('❌ Error en loadUserStats:', e);
+    return null;
   }
-  return null;
 }
 
 function isDuelPlayed(topic, rivalName) {
@@ -449,16 +491,25 @@ async function submitDuel() {
     winRate: newWinRate
   };
 
-  // GUARDAR EN LOCALSTORAGE INMEDIATAMENTE
-  const storageKey = `user-stats-${state.currentUser?.name}`;
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(updatedUser));
-    console.log('✅ STATS GUARDADAS EN localStorage:', storageKey, updatedUser);
-  } catch(e) {
-    console.log('❌ ERROR al guardar en localStorage:', e);
+  // Guardar en Supabase (grupo stats)
+  if (state.currentGroup?.code && state.currentUser?.name) {
+    const client = getSupabase();
+    if (client) {
+      client.from('group_stats').upsert({
+        group_code: state.currentGroup.code,
+        user_name: state.currentUser.name,
+        total_duels: newTotalDuels,
+        total_wins: newTotalWins,
+        points: newPoints,
+        win_rate: newWinRate,
+        updated_at: new Date().toISOString()
+      }, {onConflict: 'group_code,user_name'}).then(() => {
+        console.log('✅ Stats guardadas en Supabase:', state.currentGroup.code, state.currentUser.name);
+      }).catch(e => console.log('❌ Error guardando en Supabase:', e));
+    }
   }
 
-  // Actualizar en Supabase si está loggeado
+  // Actualizar en Supabase si está loggeado (tabla profiles)
   if (state.isLoggedIn && state.currentUser?.id) {
     const client = getSupabase();
     if (client) {
