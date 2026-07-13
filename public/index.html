@@ -351,9 +351,20 @@ async function logout() {
   localStorage.removeItem('quizCombatUser');
 }
 
+function isDuelPlayed(topic, rivalName) {
+  const duelKey = `duel-${topic}-${rivalName}`;
+  const lastDuel = localStorage.getItem(duelKey);
+  if (!lastDuel) return false;
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  return (Date.now() - parseInt(lastDuel)) < oneDayMs;
+}
+
 function selectTopic(t) { state.selectedTopic === t ? setState({selectedTopic:null,selectedRival:null}) : setState({selectedTopic:t, selectedRival:null, currentQuestions: getQuestionsByTopic(t)}); }
 
 function selectRival(n) {
+  if (state.selectedTopic && isDuelPlayed(state.selectedTopic, n)) {
+    return showMessage('error', `Ya jugaste contra ${n} en ${state.selectedTopic}. Vuelve mañana.`);
+  }
   const r = state.currentGroup?.members.find(m => m.name === n);
   r && (state.selectedRival?.name === r.name ? setState({selectedRival:null, currentQuestions:state.currentQuestions}) : setState({selectedRival:r, currentQuestions:state.currentQuestions}));
 }
@@ -505,7 +516,7 @@ function render() {
     const statsSection = `<div class="stats-box"><div class="stats-grid"><div><div class="stat-item">Tu win rate</div><div class="stat-value">${state.currentUser?.winRate || 0}%</div></div><div><div class="stat-item">Duelos totales</div><div class="stat-value">${state.currentUser?.totalDuels || 0}</div></div></div></div>`;
     const registerCard = state.isLoggedIn ? '' : `<div class="register-card"><h3>📊 Guarda tu progreso</h3><p>Crea una cuenta para ver tus estadísticas persistentes y ranking.</p><button class="button-secondary" onclick="switchTab('session')" style="border-color: var(--orange-500); color: var(--orange-500);">Crear cuenta gratuita</button></div>`;
 
-    r.innerHTML = `<div class="dashboard-container"><div class="header"><h1 style="margin: 0 0 var(--spacing-sm);">⚔️ Quiz Combat</h1><p>${state.currentUser?.name || 'Jugador'} ${state.currentGroup ? '• ' + state.currentGroup.name : ''}</p></div>${statsSection}${registerCard}<h2 class="section-title">📚 Elige tema</h2><div class="topics-grid">${topicsList.map(t => `<div class="card ${state.selectedTopic === t ? 'selected' : ''}" onclick="selectTopic('${t}')""><div class="card-title">${t}</div></div>`).join('')}</div>${state.selectedTopic ? `<h2 class="section-title">⚔️ Elige rival</h2>${state.currentGroup?.members.filter(m => m.name !== state.currentUser?.name).map(rv => `<div class="card ${state.selectedRival?.name === rv.name ? 'selected' : ''}" onclick="selectRival('${rv.name}')""><div class="rival-item"><div class="rival-emoji">${rv.emoji}</div><div class="rival-details"><div class="card-title">${rv.name}</div><div class="card-subtitle">${rv.winRate}% victorias</div></div><div class="badge-box ${state.selectedRival?.name === rv.name ? 'active' : ''}">Seleccionar</div></div></div>`).join('')}${state.selectedRival ? `<button class="button-primary" onclick="startDuel()">Comenzar duelo ⚔️</button>` : ''}` : ''}<button class="button-secondary" onclick="logout()">Salir</button></div>`;
+    r.innerHTML = `<div class="dashboard-container"><div class="header"><h1 style="margin: 0 0 var(--spacing-sm);">⚔️ Quiz Combat</h1><p>${state.currentUser?.name || 'Jugador'} ${state.currentGroup ? '• ' + state.currentGroup.name : ''}</p></div>${statsSection}${registerCard}<h2 class="section-title">📚 Elige tema</h2><div class="topics-grid">${topicsList.map(t => `<div class="card ${state.selectedTopic === t ? 'selected' : ''}" onclick="selectTopic('${t}')""><div class="card-title">${t}</div></div>`).join('')}</div>${state.selectedTopic ? `<h2 class="section-title">⚔️ Elige rival</h2>${state.currentGroup?.members.filter(m => m.name !== state.currentUser?.name).map(rv => {const played = isDuelPlayed(state.selectedTopic, rv.name); const badgeText = played ? '🔄 JUGADO' : '⏳ PENDIENTE'; const badgeColor = played ? 'background: #999; color: white;' : 'background: var(--orange-500); color: white;'; return `<div class="card ${state.selectedRival?.name === rv.name ? 'selected' : ''}" onclick="selectRival('${rv.name}')""><div class="rival-item"><div class="rival-emoji">${rv.emoji}</div><div class="rival-details"><div class="card-title">${rv.name}</div><div class="card-subtitle">${rv.winRate}% victorias</div></div><div class="badge-box" style="${badgeColor}">${badgeText}</div></div></div>`}).join('')}${state.selectedRival ? `<button class="button-primary" onclick="startDuel()">Comenzar duelo ⚔️</button>` : ''}` : ''}<button class="button-secondary" onclick="logout()">Salir</button></div>`;
   } else if (state.screen === 'game') {
     if (!state.currentQuestions || state.currentQuestions.length === 0) {
       r.innerHTML = `<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display); margin: 0 0 var(--spacing-md);">Error al cargar preguntas</h1><button class="button-primary" onclick="backToDashboard()">Volver al Dashboard</button></div></div>`;
