@@ -120,8 +120,34 @@ let sb = null;
 const SUPABASE_URL = 'https://qukuudhptrqwnuzhxxfb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a3V1ZGhwdHJxd256aHh4ZmIiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODE4NTAxNywiZXhwIjoxNzY5NzIxMDE3fQ.G4YCqpKbwqPyJDCqF1E9g6o4Wfso0Zw8EI1jdqM1z4U';
 
-if (window.supabase) {
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function initSupabase() {
+  if (window.supabase && !sb) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  }
+  return false;
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    let attempts = 0;
+    const checkSupabase = setInterval(() => {
+      if (initSupabase()) {
+        clearInterval(checkSupabase);
+      }
+      attempts++;
+      if (attempts > 50) clearInterval(checkSupabase);
+    }, 100);
+  });
+} else {
+  let attempts = 0;
+  const checkSupabase = setInterval(() => {
+    if (initSupabase()) {
+      clearInterval(checkSupabase);
+    }
+    attempts++;
+    if (attempts > 50) clearInterval(checkSupabase);
+  }, 100);
 }
 
 const questionsData = [
