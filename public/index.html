@@ -131,9 +131,20 @@ function getSupabase() {
   return sb;
 }
 
-setTimeout(() => {
-  getSupabase();
-}, 2000);
+// Intentar inicializar Supabase múltiples veces
+let initAttempts = 0;
+const initInterval = setInterval(() => {
+  if (getSupabase()) {
+    console.log('✓ Supabase inicializado correctamente');
+    clearInterval(initInterval);
+  } else {
+    initAttempts++;
+    if (initAttempts > 30) {
+      console.error('✗ No se pudo inicializar Supabase');
+      clearInterval(initInterval);
+    }
+  }
+}, 200);
 
 const questionsData = [
   {id:'act1',topic:'Actualidad',text:'¿Qué tecnología ha tenido un crecimiento acelerado desde 2023?',options:['Fax','Inteligencia Artificial Generativa','Disquetes','Pagers'],correctAnswerIndex:1,justification:'La IA generativa ha experimentado una rápida adopción.'},
