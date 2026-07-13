@@ -440,12 +440,23 @@ async function submitDuel() {
   const newWinRate = newTotalDuels > 0 ? Math.round((newTotalWins / newTotalDuels) * 100) : 0;
 
   const updatedUser = {
-    ...state.currentUser,
+    name: state.currentUser?.name,
+    id: state.currentUser?.id,
+    emoji: state.currentUser?.emoji,
     totalDuels: newTotalDuels,
     totalWins: newTotalWins,
     points: newPoints,
     winRate: newWinRate
   };
+
+  // GUARDAR EN LOCALSTORAGE INMEDIATAMENTE
+  const storageKey = `user-stats-${state.currentUser?.name}`;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(updatedUser));
+    console.log('✅ STATS GUARDADAS EN localStorage:', storageKey, updatedUser);
+  } catch(e) {
+    console.log('❌ ERROR al guardar en localStorage:', e);
+  }
 
   // Actualizar en Supabase si está loggeado
   if (state.isLoggedIn && state.currentUser?.id) {
@@ -458,16 +469,6 @@ async function submitDuel() {
         win_rate: newWinRate
       }).eq('id', state.currentUser.id);
     }
-  }
-
-  // Guardar en localStorage SIEMPRE (antes de setState)
-  if (state.currentUser?.name) {
-    console.log('🔴 Intentando guardar stats para:', state.currentUser.name);
-    console.log('📊 Datos a guardar:', updatedUser);
-    saveUserStats(state.currentGroup?.code || 'sin-grupo', state.currentUser.name, updatedUser);
-    console.log('✅ Stats guardadas en localStorage');
-  } else {
-    console.log('❌ No hay currentUser.name, no se guardan stats');
   }
 
   // Actualizar estado local SIEMPRE
