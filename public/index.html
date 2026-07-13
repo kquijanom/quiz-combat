@@ -460,7 +460,74 @@ function handleCopyCode() { state.inviteCode && (navigator.clipboard.writeText(s
 
 function handleJoinRanking() {
   const n = document.getElementById('rankingPlayerName')?.value;
-  n ? setState({screen:'ranking',currentUser:{name:n,id:`ranking-${Date.now()}`,winRate:50,emoji:'👤'},isLoggedIn:false,isRankingMode:true}) : showMessage('error', 'Por favor ingresa tu nombre');
+  if (!n) return showMessage('error', 'Por favor ingresa tu nombre');
+
+  const userId = `ranking-${Date.now()}`;
+  let newUser = {name:n,id:userId,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+
+  // Mostrar ranking con datos por defecto mientras carga
+  setState({screen:'ranking',currentUser:newUser,isLoggedIn:false,isRankingMode:true, globalRanking: []});
+
+  // Cargar datos del jugador y ranking desde Supabase
+  (async () => {
+    const client = getSupabase();
+    if (!client) return console.log('❌ Supabase no disponible');
+
+    try {
+      // 1. Crear o cargar jugador del ranking
+      const { data: existingPlayer } = await client
+        .from('ranking')
+        .select('*')
+        .eq('user_name', n)
+        .single();
+
+      if (existingPlayer) {
+        console.log('✅ Jugador cargado del ranking:', existingPlayer);
+        newUser = {
+          ...newUser,
+          totalDuels: existingPlayer.total_duels,
+          totalWins: existingPlayer.total_wins,
+          points: existingPlayer.points,
+          winRate: existingPlayer.win_rate
+        };
+      } else {
+        // Crear nuevo jugador en ranking
+        const { error: insertError } = await client.from('ranking').insert({
+          user_name: n,
+          user_id: userId,
+          total_duels: 0,
+          total_wins: 0,
+          points: 0,
+          win_rate: 0
+        });
+        if (!insertError) {
+          console.log('✅ Nuevo jugador creado en ranking:', n);
+        }
+      }
+
+      // 2. Cargar ranking global (top 8)
+      const { data: ranking, error: rankingError } = await client
+        .from('ranking')
+        .select('*')
+        .order('points', {ascending: false})
+        .limit(8);
+
+      if (!rankingError && ranking) {
+        console.log('✅ Ranking cargado:', ranking.length, 'jugadores');
+        const globalRankingData = ranking.map(p => ({
+          name: p.user_name,
+          points: p.points,
+          winRate: p.win_rate
+        }));
+        setState({
+          currentUser: newUser,
+          globalRanking: globalRankingData
+        });
+      }
+    } catch(e) {
+      console.log('❌ Error cargando ranking:', e);
+    }
+  })();
 }
 
 function startAutoMatchmaking() {
@@ -609,7 +676,7 @@ async function submitDuel() {
     winRate: newWinRate
   };
 
-  // Guardar stats en Supabase group_data
+  // Guardar stats en Supabase group_data (para grupos)
   if (state.currentGroup?.code && state.currentUser?.name) {
     const client = getSupabase();
     if (client) {
@@ -624,8 +691,26 @@ async function submitDuel() {
         win_rate: newWinRate,
         updated_at: new Date().toISOString()
       }, {onConflict: 'group_code,type,user_name'}).then(() => {
-        console.log('✅ Stats guardadas en Supabase:', state.currentGroup.code, state.currentUser.name);
+        console.log('✅ Stats guardadas en grupo:', state.currentGroup.code, state.currentUser.name);
       }).catch(e => console.log('❌ Error guardando stats:', e));
+    }
+  }
+
+  // Guardar stats en tabla ranking (para ranking global)
+  if (state.isRankingMode && state.currentUser?.name) {
+    const client = getSupabase();
+    if (client) {
+      client.from('ranking').upsert({
+        user_name: state.currentUser.name,
+        user_id: state.currentUser.id,
+        total_duels: newTotalDuels,
+        total_wins: newTotalWins,
+        points: newPoints,
+        win_rate: newWinRate,
+        updated_at: new Date().toISOString()
+      }, {onConflict: 'user_name'}).then(() => {
+        console.log('✅ Ranking actualizado:', state.currentUser.name, 'puntos:', newPoints);
+      }).catch(e => console.log('❌ Error en ranking:', e));
     }
   }
 
