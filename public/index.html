@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quiz Combat - Duelos de Conocimiento</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --orange-500: #FF6B35;
@@ -28,6 +29,7 @@
     #root { width: 100%; min-height: 100vh; }
     .button-primary { padding: var(--spacing-lg) var(--spacing-xl); background: linear-gradient(135deg, var(--orange-500) 0%, #FF5733 100%); color: white; border: none; border-radius: var(--radius-lg); font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(255, 87, 51, 0.3); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); margin-bottom: var(--spacing-md); width: 100%; font-family: var(--font-display); }
     .button-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255, 87, 51, 0.5); }
+    .button-primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .button-secondary { padding: var(--spacing-lg) var(--spacing-xl); background: white; color: var(--orange-500); border: 2px solid var(--orange-500); border-radius: var(--radius-lg); font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.3s ease; margin-bottom: var(--spacing-md); width: 100%; font-family: var(--font-display); }
     .button-secondary:hover { background: rgba(255, 165, 0, 0.05); }
     .card { padding: var(--spacing-lg); background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-default); margin-bottom: var(--spacing-lg); cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -59,6 +61,9 @@
     .tab-switch { margin-top: var(--spacing-lg); text-align: center; font-size: 12px; color: var(--text-secondary); }
     .tab-link { background: none; border: none; color: var(--orange-500); cursor: pointer; font-weight: 600; padding: 0; font-family: var(--font-body); font-size: 12px; }
     .tab-link:hover { text-decoration: underline; }
+    .error-message { background: #FEE2E2; color: #991B1B; padding: var(--spacing-md); border-radius: var(--radius-lg); margin-bottom: var(--spacing-lg); font-size: 13px; }
+    .success-message { background: #DCFCE7; color: #166534; padding: var(--spacing-md); border-radius: var(--radius-lg); margin-bottom: var(--spacing-lg); font-size: 13px; }
+    .loading { opacity: 0.6; cursor: not-allowed; }
     .divider { text-align: center; margin: var(--spacing-lg) 0; font-size: 12px; color: var(--text-secondary); }
     .dashboard-container, .game-container, .ranking-container, .results-container { padding: var(--spacing-xl); max-width: 600px; margin: 0 auto; }
     .dashboard-container { background: #f5f5f5; min-height: 100vh; }
@@ -111,7 +116,250 @@
 <body>
   <div id="root"></div>
   <script>
-const questionsData=[{id:'act1',topic:'Actualidad',text:'¿Qué tecnología ha tenido un crecimiento acelerado desde 2023?',options:['Fax','Inteligencia Artificial Generativa','Disquetes','Pagers'],correctAnswerIndex:1,justification:'La IA generativa ha experimentado una rápida adopción.'},{id:'act2',topic:'Actualidad',text:'¿Qué fenómeno está relacionado con el aumento de la temperatura promedio del planeta?',options:['Cambio climático','Lluvia ácida','Erosión','Tornados'],correctAnswerIndex:0,justification:'El cambio climático implica un calentamiento global sostenido.'},{id:'sci1',topic:'Ciencia y tecnología',text:'¿Cuál es el planeta más cercano al Sol?',options:['Venus','Marte','Mercurio','Tierra'],correctAnswerIndex:2,justification:'Mercurio es el primer planeta del Sistema Solar.'},{id:'cin1',topic:'Cine y series',text:'¿Qué premio es el más prestigioso del cine?',options:['Grammy','Óscar','Emmy','Tony'],correctAnswerIndex:1,justification:'Los Premios Óscar reconocen la excelencia cinematográfica.'},{id:'cul1',topic:'Cultura general',text:'¿Quién escribió Don Quijote de la Mancha?',options:['Gabriel García Márquez','Miguel de Cervantes','Pablo Neruda','Federico García Lorca'],correctAnswerIndex:1,justification:'Cervantes publicó la obra en el siglo XVII.'},{id:'geo1',topic:'Geografía',text:'¿Cuál es la capital de Argentina?',options:['Rosario','Córdoba','Buenos Aires','Mendoza'],correctAnswerIndex:2,justification:'Buenos Aires es la capital argentina.'},{id:'his1',topic:'Historia',text:'¿Qué civilización construyó las pirámides de Guiza?',options:['Romanos','Egipcios','Mayas','Griegos'],correctAnswerIndex:1,justification:'Las pirámides de Guiza fueron construidas por el Antiguo Egipto.'},{id:'dep1',topic:'Deportes',text:'¿Cuántos jugadores tiene un equipo de fútbol en el campo al iniciar el partido?',options:['9','10','11','12'],correctAnswerIndex:2,justification:'Cada equipo juega con 11 futbolistas.'}];const topicsList=['Actualidad','Ciencia y tecnología','Cine y series','Cultura general','Geografía','Historia','Deportes'];function getQuestionsByTopic(t){return questionsData.filter(q=>q.topic===t).slice(0,5)}function createSampleUser(n){return{id:`user-${Date.now()}-${Math.random()}`,name:n,winRate:Math.floor(Math.random()*100),emoji:['👨','👩','👦','👧'][Math.floor(Math.random()*4)]}}const state={screen:'login',loginTab:'session',currentUser:null,currentGroup:null,inviteCode:null,selectedTopic:null,selectedRival:null,currentQuestionIndex:0,answers:Array(5).fill(null),userScore:0,rivalScore:0,resultUserWon:false,isLoggedIn:false,currentQuestions:[],isRankingMode:false,matchmakingStatus:'idle',globalRanking:[{name:'Carlos',points:1000,winRate:85},{name:'María',points:900,winRate:80},{name:'Juan',points:800,winRate:75},{name:'Sofia',points:700,winRate:70},{name:'Diego',points:600,winRate:65},{name:'Roberto',points:550,winRate:72},{name:'Ana',points:500,winRate:68},{name:'Luis',points:450,winRate:60}]};function setState(u){Object.assign(state,u);render()}function switchTab(t){setState({loginTab:t})}function handleSessionLogin(){const u=document.getElementById('sessionUsername')?.value,p=document.getElementById('sessionPassword')?.value;if(!u||!p)return void alert('Por favor completa todos los campos');setState({screen:'dashboard',currentUser:{name:u,id:`user-${Date.now()}`,winRate:60,emoji:'👤'},isLoggedIn:true,currentGroup:{name:'Mi grupo',code:'GRUPO001',members:[{name:u,id:`user-${Date.now()}`,winRate:60,emoji:'👤'},createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},loginTab:'session'}),localStorage.setItem('quizCombatUser',u)}function handleSessionRegister(){handleSessionLogin()}function handleCreateGroup(){const n=document.getElementById('groupName')?.value,u=document.getElementById('userName')?.value;if(!n||!u)return void alert('Por favor completa todos los campos');const c=Math.random().toString(36).substring(2,8).toUpperCase();setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[{name:u,id:`user-${Date.now()}`,winRate:50,emoji:'👤'}]},currentUser:{name:u,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},isLoggedIn:false})}function handleJoinGroup(){const c=document.getElementById('joinCode')?.value,n=document.getElementById('joinName')?.value;if(!c||!n)return void alert('Por favor completa todos los campos');setState({screen:'dashboard',currentUser:{name:n,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},currentGroup:{name:`Grupo ${c}`,code:c,members:[{name:n,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false})}function handleCopyCode(){state.inviteCode&&(navigator.clipboard.writeText(state.inviteCode),alert('Código copiado al portapapeles'))}function handleJoinRanking(){const n=document.getElementById('rankingPlayerName')?.value;n?setState({screen:'ranking',currentUser:{name:n,id:`ranking-${Date.now()}`,winRate:50,emoji:'👤'},isLoggedIn:false,isRankingMode:true}):alert('Por favor ingresa tu nombre')}function startAutoMatchmaking(){setState({matchmakingStatus:'matching'}),setTimeout(()=>{const a=state.globalRanking.filter(p=>p.name!==state.currentUser?.name),r=a[Math.floor(Math.random()*a.length)],t=topicsList[Math.floor(Math.random()*topicsList.length)];setState({screen:'game',selectedRival:r,selectedTopic:t,currentQuestionIndex:0,answers:Array(5).fill(null),matchmakingStatus:'matched',isRankingMode:true,currentQuestions:getQuestionsByTopic(t)})},2e3)}function cancelMatchmaking(){setState({screen:'ranking',matchmakingStatus:'idle'})}function handleShowRankingJoin(){setState({screen:'ranking-join'})}function backToLogin(){setState({screen:'login',currentUser:null,currentGroup:null,inviteCode:null,loginTab:'session'})}function logout(){backToLogin(),localStorage.removeItem('quizCombatUser')}function selectTopic(t){state.selectedTopic===t?setState({selectedTopic:null,selectedRival:null}):setState({selectedTopic:t,selectedRival:null,currentQuestions:getQuestionsByTopic(t)})}function selectRival(n){const r=state.currentGroup?.members.find(m=>m.name===n);r&&(state.selectedRival?.name===r.name?setState({selectedRival:null,currentQuestions:state.currentQuestions}):setState({selectedRival:r,currentQuestions:state.currentQuestions}))}function startDuel(){if(!state.selectedTopic||!state.selectedRival)return void alert('Por favor selecciona un tema y un rival');const q=getQuestionsByTopic(state.selectedTopic);setState({screen:'game',currentQuestionIndex:0,answers:Array(5).fill(null),currentQuestions:q,isRankingMode:false})}function selectAnswer(i,a){const ans=[...state.answers];ans[i]=a,setState({answers:ans})}function nextQuestion(){state.currentQuestionIndex<4&&setState({currentQuestionIndex:state.currentQuestionIndex+1,currentQuestions:state.currentQuestions,selectedTopic:state.selectedTopic,selectedRival:state.selectedRival,answers:state.answers})}function prevQuestion(){state.currentQuestionIndex>0&&setState({currentQuestionIndex:state.currentQuestionIndex-1,currentQuestions:state.currentQuestions,selectedTopic:state.selectedTopic,selectedRival:state.selectedRival,answers:state.answers})}function submitDuel(){let s=0;for(let i=0;i<state.currentQuestions.length;i++)state.answers[i]===state.currentQuestions[i].correctAnswerIndex&&s++;const rs=Math.floor(Math.random()*5);setState({screen:'results',userScore:s,rivalScore:rs,resultUserWon:s>rs,isRankingMode:state.isRankingMode})}function backToRanking(){setState({screen:'ranking',selectedTopic:null,selectedRival:null,currentQuestionIndex:0,answers:Array(5).fill(null),matchmakingStatus:'idle'})}function backToDashboard(){setState({screen:'dashboard',selectedTopic:null,selectedRival:null,currentQuestionIndex:0,answers:Array(5).fill(null)})}function goToDashboard(){setState({screen:'dashboard'})}function render(){const r=document.getElementById('root');if(r.innerHTML='','login'===state.screen)r.innerHTML=`<div class="login-container"><div class="float-shape"></div><div class="float-shape"></div><div class="login-center"><div class="login-logo">⚔️</div><h1 class="login-title">Quiz Combat</h1><p class="login-subtitle">Desafía a otros en batallas de conocimiento</p><div class="login-box"><div class="tab-content ${'session'===state.loginTab?'active':''}"><h2>Accede a tu cuenta</h2><input type="text" id="sessionUsername" placeholder="Tu username"><input type="password" id="sessionPassword" placeholder="Contraseña"><button class="button-primary" onclick="handleSessionLogin()">Iniciar sesión</button><div class="tab-switch">¿No tienes cuenta? <button class="tab-link" onclick="switchTab('register')">Regístrate</button></div><button class="button-secondary" onclick="switchTab('group')">Entra sin cuenta</button><button class="button-secondary" onclick="handleShowRankingJoin()">Jugar en Ranking Global 🏆</button></div><div class="tab-content ${'register'===state.loginTab?'active':''}"><h2>Crea tu cuenta</h2><input type="text" id="registerUsername" placeholder="Tu username"><input type="password" id="registerPassword" placeholder="Contraseña"><button class="button-primary" onclick="handleSessionRegister()">Crear cuenta</button><button class="button-secondary" onclick="switchTab('session')">Volver a login</button></div><div class="tab-content ${'group'===state.loginTab?'active':''}"><h2>Acceso a grupo</h2><p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">¿Ya tienes grupo?</p><input type="text" id="joinCode" placeholder="Código"><input type="text" id="joinName" placeholder="Tu nombre"><button class="button-secondary" onclick="handleJoinGroup()" style="margin-bottom: var(--spacing-lg);">Unirme</button><div class="divider">O</div><p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">Crear grupo</p><input type="text" id="groupName" placeholder="Nombre grupo"><input type="text" id="userName" placeholder="Tu nombre"><button class="button-primary" onclick="handleCreateGroup()">Crear</button><button class="button-secondary" onclick="switchTab('session')">Volver al login</button></div></div></div></div></div>`;else if('ranking-join'===state.screen)r.innerHTML=`<div class="login-container"><div class="login-center"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🏆</div><h1 class="login-title">Ranking Global</h1><p class="login-subtitle">Compite con jugadores de todo el mundo</p><div class="login-box"><h2>Ingresa tu nombre</h2><input type="text" id="rankingPlayerName" placeholder="Tu nombre"><button class="button-primary" onclick="handleJoinRanking()">Jugar</button><button class="button-secondary" onclick="backToLogin()">Volver</button></div></div></div>`;else if('invite-code'===state.screen)r.innerHTML=`<div class="login-container"><div class="login-center"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🎉</div><h1 class="login-title">¡Grupo creado!</h1><div class="login-box"><p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Tu código</p><div style="font-size: 36px; letter-spacing: 4px; margin-bottom: var(--spacing-lg); color: var(--orange-500); font-weight: 700; font-family: monospace;">${state.inviteCode}</div><button class="button-primary" onclick="handleCopyCode()">Copiar código</button><button class="button-secondary" onclick="goToDashboard()">Continuar</button><button class="button-secondary" onclick="backToLogin()">Volver</button></div></div></div>`;else if('ranking'===state.screen)r.innerHTML=`<div class="ranking-container"><div class="header"><h1 style="margin: 0;">🏆 Ranking Global</h1><p style="margin: var(--spacing-md) 0 0 0;">Eres <strong>${state.currentUser?.name}</strong></p></div><div style="background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-xl); border: 1px solid var(--gold-400); text-align: center;"><div style="font: 600 12px var(--font-body); color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--spacing-md);">⚡ Emparejamiento automático</div><p style="margin: 0 0 var(--spacing-lg); color: var(--text-secondary); font-size: 13px;">Juega sin necesidad de retar. El sistema te empareja automáticamente con un rival aleatorio y tema random.</p><button class="button-primary" onclick="startAutoMatchmaking()" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); margin-bottom: 0;">⚡ Jugar Ahora</button></div><h2 style="font: 600 14px var(--font-display); color: var(--navy-900); margin: var(--spacing-xl) 0 var(--spacing-lg);">Top Jugadores</h2><div class="ranking-list">${state.globalRanking.map((p,i)=>`<div class="ranking-item" style="${state.currentUser?.name===p.name?'background: rgba(255, 165, 0, 0.1); border: 2px solid var(--orange-500);':''}"><div class="ranking-position">${i+1}</div><div class="ranking-info"><div class="ranking-name">${p.name} ${state.currentUser?.name===p.name?'👈 TÚ':''}</div><div class="ranking-winrate">Win Rate: ${Math.round(p.winRate)}%</div></div><div class="ranking-points"><div class="ranking-points-value">${p.points}</div><div class="ranking-points-label">puntos</div></div></div>`).join('')}</div><div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);"><button class="button-secondary" onclick="backToLogin()" style="flex: 1;">Volver</button><button class="button-secondary" onclick="goToDashboard()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Mi Perfil</button></div></div>`;else if('dashboard'===state.screen)r.innerHTML=`<div class="dashboard-container"><div class="header"><h1 style="margin: 0 0 var(--spacing-sm);">⚔️ Quiz Combat</h1><p>${state.currentUser?.name||'Jugador'} ${state.currentGroup?'• '+state.currentGroup.name:''}</p></div>${state.isLoggedIn?`<div class="stats-box"><div class="stats-grid"><div><div class="stat-item">Tu win rate</div><div class="stat-value">${state.currentUser?.winRate||0}%</div></div><div><div class="stat-item">Duelos hoy</div><div class="stat-value">0/3</div></div></div></div>`:`<div class="register-card"><h3>📊 Guarda tu progreso</h3><p>Crea una cuenta para ver tus estadísticas, ranking y más.</p><button class="button-secondary" onclick="switchTab('session')" style="border-color: var(--orange-500); color: var(--orange-500);">Crear cuenta gratuita</button></div>`}<h2 class="section-title">📚 Elige tema</h2>${topicsList.map(t=>`<div class="card ${state.selectedTopic===t?'selected':''}" onclick="selectTopic('${t}')""><div class="card-title">${t}</div></div>`).join('')}${state.selectedTopic?`<h2 class="section-title">⚔️ Elige rival</h2>${state.currentGroup?.members.filter(m=>m.name!==state.currentUser?.name).map(rv=>`<div class="card ${state.selectedRival?.name===rv.name?'selected':''}" onclick="selectRival('${rv.name}')""><div class="rival-item"><div class="rival-emoji">${rv.emoji}</div><div class="rival-details"><div class="card-title">${rv.name}</div><div class="card-subtitle">${rv.winRate}% victorias</div></div><div class="badge-box ${state.selectedRival?.name===rv.name?'active':''}">Seleccionar</div></div></div>`).join('')}${state.selectedRival?`<button class="button-primary" onclick="startDuel()">Comenzar duelo ⚔️</button>`:''}`:''}<button class="button-secondary" onclick="logout()">Salir</button></div>`;else if('game'===state.screen){if(!state.currentQuestions||0===state.currentQuestions.length)return void(r.innerHTML=`<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display); margin: 0 0 var(--spacing-md);">Error al cargar preguntas</h1><button class="button-primary" onclick="backToDashboard()">Volver al Dashboard</button></div></div>`);const q=state.currentQuestions[state.currentQuestionIndex];if(!q)return void(r.innerHTML=`<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display);">Error al cargar pregunta</h1><button class="button-primary" onclick="backToDashboard()">Volver</button></div></div>`);const pb=Array(5).fill(0).map((x,i)=>i<=state.currentQuestionIndex);r.innerHTML=`<div class="game-container"><div class="header" style="padding: var(--spacing-lg);"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);"><div>Pregunta ${state.currentQuestionIndex+1}/5</div><div style="text-align: right;">vs ${state.selectedRival?.name}</div></div><div class="progress-bar">${pb.map(f=>`<div class="progress-segment ${f?'filled':''}"></div>`).join('')}</div></div><div class="question-box"><p class="question-text">${q.text}</p><div class="option-container">${q.options.map((o,i)=>`<button class="option-button ${state.answers[state.currentQuestionIndex]===i?'selected':''}" onclick="selectAnswer(${state.currentQuestionIndex}, ${i})">${o}</button>`).join('')}</div></div><div class="button-group"><button class="button-secondary" onclick="prevQuestion()" ${0===state.currentQuestionIndex?'disabled':''}>← Atrás</button>${state.currentQuestionIndex<4?`<button class="button-primary" onclick="nextQuestion()">Siguiente →</button>`:`<button class="button-primary" onclick="submitDuel()">Enviar ✓</button>`}</div></div>`}else if('results'===state.screen){const nb='ranking'===state.screen?'⚡ Otro Duelo':'Volver al Dashboard',nf=state.isRankingMode?'startAutoMatchmaking()':'backToDashboard()';r.innerHTML=`<div class="results-container"><div class="result-box ${state.resultUserWon?'result-win':'result-lose'}"><div class="emoji">${state.resultUserWon?'🎉':'😢'}</div><h1 class="result-title">${state.resultUserWon?'¡Ganaste!':'Perdiste'}</h1><div class="score-grid"><div><div class="score-item">Tu score</div><div class="score-value">${state.userScore}</div></div><div><div class="score-item">${state.selectedRival?.name}</div><div class="score-value">${state.rivalScore}</div></div></div><button class="button-primary" onclick="${nf}" style="${state.isRankingMode?'background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);':''}">${nb}</button>${state.isRankingMode?`<button class="button-secondary" onclick="backToRanking()">Ver Ranking</button>`:''}</div></div>`}}render();
+const SUPABASE_URL = 'https://qukuudhptrqwnuzhxxfb.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a3V1ZGhwdHJxd256aHh4ZmIiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczODE4NTAxNywiZXhwIjoxNzY5NzIxMDE3fQ.G4YCqpKbwqPyJDCqF1E9g6o4Wfso0Zw8EI1jdqM1z4U';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const questionsData = [
+  {id:'act1',topic:'Actualidad',text:'¿Qué tecnología ha tenido un crecimiento acelerado desde 2023?',options:['Fax','Inteligencia Artificial Generativa','Disquetes','Pagers'],correctAnswerIndex:1,justification:'La IA generativa ha experimentado una rápida adopción.'},
+  {id:'act2',topic:'Actualidad',text:'¿Qué fenómeno está relacionado con el aumento de la temperatura promedio del planeta?',options:['Cambio climático','Lluvia ácida','Erosión','Tornados'],correctAnswerIndex:0,justification:'El cambio climático implica un calentamiento global sostenido.'},
+  {id:'sci1',topic:'Ciencia y tecnología',text:'¿Cuál es el planeta más cercano al Sol?',options:['Venus','Marte','Mercurio','Tierra'],correctAnswerIndex:2,justification:'Mercurio es el primer planeta del Sistema Solar.'},
+  {id:'cin1',topic:'Cine y series',text:'¿Qué premio es el más prestigioso del cine?',options:['Grammy','Óscar','Emmy','Tony'],correctAnswerIndex:1,justification:'Los Premios Óscar reconocen la excelencia cinematográfica.'},
+  {id:'cul1',topic:'Cultura general',text:'¿Quién escribió Don Quijote de la Mancha?',options:['Gabriel García Márquez','Miguel de Cervantes','Pablo Neruda','Federico García Lorca'],correctAnswerIndex:1,justification:'Cervantes publicó la obra en el siglo XVII.'},
+  {id:'geo1',topic:'Geografía',text:'¿Cuál es la capital de Argentina?',options:['Rosario','Córdoba','Buenos Aires','Mendoza'],correctAnswerIndex:2,justification:'Buenos Aires es la capital argentina.'},
+  {id:'his1',topic:'Historia',text:'¿Qué civilización construyó las pirámides de Guiza?',options:['Romanos','Egipcios','Mayas','Griegos'],correctAnswerIndex:1,justification:'Las pirámides de Guiza fueron construidas por el Antiguo Egipto.'},
+  {id:'dep1',topic:'Deportes',text:'¿Cuántos jugadores tiene un equipo de fútbol en el campo al iniciar el partido?',options:['9','10','11','12'],correctAnswerIndex:2,justification:'Cada equipo juega con 11 futbolistas.'}
+];
+
+const topicsList = ['Actualidad','Ciencia y tecnología','Cine y series','Cultura general','Geografía','Historia','Deportes'];
+
+function getQuestionsByTopic(t) { return questionsData.filter(q => q.topic === t).slice(0, 5); }
+function createSampleUser(n) { return {id:`user-${Date.now()}-${Math.random()}`,name:n,winRate:Math.floor(Math.random()*100),emoji:['👨','👩','👦','👧'][Math.floor(Math.random()*4)]}; }
+
+const state = {
+  screen: 'login',
+  loginTab: 'session',
+  currentUser: null,
+  currentGroup: null,
+  inviteCode: null,
+  selectedTopic: null,
+  selectedRival: null,
+  currentQuestionIndex: 0,
+  answers: Array(5).fill(null),
+  userScore: 0,
+  rivalScore: 0,
+  resultUserWon: false,
+  isLoggedIn: false,
+  currentQuestions: [],
+  isRankingMode: false,
+  matchmakingStatus: 'idle',
+  loading: false,
+  message: { type: null, text: null },
+  globalRanking: [
+    {name:'Carlos',points:1000,winRate:85},{name:'María',points:900,winRate:80},{name:'Juan',points:800,winRate:75},{name:'Sofia',points:700,winRate:70},
+    {name:'Diego',points:600,winRate:65},{name:'Roberto',points:550,winRate:72},{name:'Ana',points:500,winRate:68},{name:'Luis',points:450,winRate:60}
+  ]
+};
+
+function setState(u) { Object.assign(state, u); render(); }
+function switchTab(t) { setState({loginTab: t, message: {type:null,text:null}}); }
+function showMessage(type, text) { setState({message: {type, text}}); setTimeout(() => setState({message: {type:null,text:null}}), 4000); }
+
+async function handleSessionLogin() {
+  const u = document.getElementById('sessionUsername')?.value;
+  const p = document.getElementById('sessionPassword')?.value;
+  if (!u || !p) return showMessage('error', 'Por favor completa todos los campos');
+
+  setState({loading: true});
+  try {
+    const {data, error} = await supabase.auth.signInWithPassword({email: u + '@quiz-combat.local', password: p});
+    if (error) return showMessage('error', error.message || 'Error al iniciar sesión');
+
+    const userProfile = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+    setState({
+      screen: 'dashboard',
+      currentUser: {name: userProfile.data?.username || u, id: data.user.id, winRate: 60, emoji:'👤'},
+      isLoggedIn: true,
+      currentGroup: {name: 'Mi grupo', code: 'GRUPO001', members: [{name: userProfile.data?.username || u, id: data.user.id, winRate:60, emoji:'👤'}, createSampleUser('María'), createSampleUser('Juan'), createSampleUser('Sofia')]},
+      loginTab: 'session',
+      loading: false,
+      message: {type:null,text:null}
+    });
+    localStorage.setItem('quizCombatUser', u);
+  } catch (err) {
+    showMessage('error', 'Error al iniciar sesión');
+    setState({loading: false});
+  }
+}
+
+async function handleSessionRegister() {
+  const u = document.getElementById('registerUsername')?.value;
+  const p = document.getElementById('registerPassword')?.value;
+  if (!u || !p) return showMessage('error', 'Por favor completa todos los campos');
+  if (p.length < 6) return showMessage('error', 'La contraseña debe tener al menos 6 caracteres');
+
+  setState({loading: true});
+  try {
+    const {data, error} = await supabase.auth.signUp({email: u + '@quiz-combat.local', password: p});
+    if (error) return showMessage('error', error.message || 'Error al crear cuenta');
+
+    await supabase.from('profiles').insert([{id: data.user.id, username: u}]);
+
+    showMessage('success', '¡Cuenta creada! Inicia sesión ahora.');
+    setState({loginTab: 'session', loading: false});
+  } catch (err) {
+    showMessage('error', 'Error al crear cuenta');
+    setState({loading: false});
+  }
+}
+
+function handleCreateGroup() {
+  const n = document.getElementById('groupName')?.value;
+  const u = document.getElementById('userName')?.value;
+  if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
+  const c = Math.random().toString(36).substring(2,8).toUpperCase();
+  setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[{name:u,id:`user-${Date.now()}`,winRate:50,emoji:'👤'}]},currentUser:{name:u,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},isLoggedIn:false});
+}
+
+function handleJoinGroup() {
+  const c = document.getElementById('joinCode')?.value;
+  const n = document.getElementById('joinName')?.value;
+  if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
+  setState({screen:'dashboard',currentUser:{name:n,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},currentGroup:{name:`Grupo ${c}`,code:c,members:[{name:n,id:`user-${Date.now()}`,winRate:50,emoji:'👤'},createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
+}
+
+function handleCopyCode() { state.inviteCode && (navigator.clipboard.writeText(state.inviteCode), alert('Código copiado al portapapeles')); }
+
+function handleJoinRanking() {
+  const n = document.getElementById('rankingPlayerName')?.value;
+  n ? setState({screen:'ranking',currentUser:{name:n,id:`ranking-${Date.now()}`,winRate:50,emoji:'👤'},isLoggedIn:false,isRankingMode:true}) : showMessage('error', 'Por favor ingresa tu nombre');
+}
+
+function startAutoMatchmaking() {
+  setState({matchmakingStatus:'matching'});
+  setTimeout(() => {
+    const a = state.globalRanking.filter(p => p.name !== state.currentUser?.name);
+    const r = a[Math.floor(Math.random() * a.length)];
+    const t = topicsList[Math.floor(Math.random() * topicsList.length)];
+    setState({screen:'game', selectedRival:r, selectedTopic:t, currentQuestionIndex:0, answers:Array(5).fill(null), matchmakingStatus:'matched', isRankingMode:true, currentQuestions: getQuestionsByTopic(t)});
+  }, 2000);
+}
+
+function cancelMatchmaking() { setState({screen:'ranking', matchmakingStatus:'idle'}); }
+function handleShowRankingJoin() { setState({screen:'ranking-join'}); }
+
+async function logout() {
+  await supabase.auth.signOut();
+  setState({screen:'login', currentUser:null, currentGroup:null, inviteCode:null, isLoggedIn:false, loginTab:'session'});
+  localStorage.removeItem('quizCombatUser');
+}
+
+function selectTopic(t) { state.selectedTopic === t ? setState({selectedTopic:null,selectedRival:null}) : setState({selectedTopic:t, selectedRival:null, currentQuestions: getQuestionsByTopic(t)}); }
+
+function selectRival(n) {
+  const r = state.currentGroup?.members.find(m => m.name === n);
+  r && (state.selectedRival?.name === r.name ? setState({selectedRival:null, currentQuestions:state.currentQuestions}) : setState({selectedRival:r, currentQuestions:state.currentQuestions}));
+}
+
+function startDuel() {
+  if (!state.selectedTopic || !state.selectedRival) return showMessage('error', 'Por favor selecciona un tema y un rival');
+  const q = getQuestionsByTopic(state.selectedTopic);
+  setState({screen:'game', currentQuestionIndex:0, answers:Array(5).fill(null), currentQuestions:q, isRankingMode:false});
+}
+
+function selectAnswer(i, a) { const ans = [...state.answers]; ans[i] = a; setState({answers:ans}); }
+function nextQuestion() { state.currentQuestionIndex < 4 && setState({currentQuestionIndex:state.currentQuestionIndex+1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
+function prevQuestion() { state.currentQuestionIndex > 0 && setState({currentQuestionIndex:state.currentQuestionIndex-1, currentQuestions:state.currentQuestions, selectedTopic:state.selectedTopic, selectedRival:state.selectedRival, answers:state.answers}); }
+
+function submitDuel() {
+  let s = 0;
+  for (let i = 0; i < state.currentQuestions.length; i++) { if (state.answers[i] === state.currentQuestions[i].correctAnswerIndex) s++; }
+  const rs = Math.floor(Math.random() * 5);
+  setState({screen:'results', userScore:s, rivalScore:rs, resultUserWon:s>rs, isRankingMode:state.isRankingMode});
+}
+
+function backToRanking() { setState({screen:'ranking', selectedTopic:null, selectedRival:null, currentQuestionIndex:0, answers:Array(5).fill(null), matchmakingStatus:'idle'}); }
+function backToDashboard() { setState({screen:'dashboard', selectedTopic:null, selectedRival:null, currentQuestionIndex:0, answers:Array(5).fill(null)}); }
+function goToDashboard() { setState({screen:'dashboard'}); }
+function backToLogin() { setState({screen:'login', currentUser:null, currentGroup:null, inviteCode:null, loginTab:'session'}); }
+
+function render() {
+  const r = document.getElementById('root');
+  r.innerHTML = '';
+
+  if (state.screen === 'login') {
+    r.innerHTML = `<div class="login-container">
+      <div class="float-shape"></div><div class="float-shape"></div>
+      <div class="login-center">
+        <div class="login-logo">⚔️</div>
+        <h1 class="login-title">Quiz Combat</h1>
+        <p class="login-subtitle">Desafía a otros en batallas de conocimiento</p>
+        <div class="login-box">
+          ${state.message.type ? `<div class="login-${state.message.type}-message ${state.message.type}-message">${state.message.text}</div>` : ''}
+          <div class="tab-content ${state.loginTab === 'session' ? 'active' : ''}">
+            <h2>Accede a tu cuenta</h2>
+            <input type="text" id="sessionUsername" placeholder="Tu usuario">
+            <input type="password" id="sessionPassword" placeholder="Contraseña">
+            <button class="button-primary ${state.loading ? 'loading' : ''}" onclick="handleSessionLogin()" ${state.loading ? 'disabled' : ''}>
+              ${state.loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            </button>
+            <div class="tab-switch">¿No tienes cuenta? <button class="tab-link" onclick="switchTab('register')">Regístrate</button></div>
+            <button class="button-secondary" onclick="switchTab('group')">Entra sin cuenta</button>
+            <button class="button-secondary" onclick="handleShowRankingJoin()">Jugar en Ranking Global 🏆</button>
+          </div>
+          <div class="tab-content ${state.loginTab === 'register' ? 'active' : ''}">
+            <h2>Crea tu cuenta</h2>
+            <input type="text" id="registerUsername" placeholder="Tu usuario">
+            <input type="password" id="registerPassword" placeholder="Contraseña (mín. 6 caracteres)">
+            <button class="button-primary ${state.loading ? 'loading' : ''}" onclick="handleSessionRegister()" ${state.loading ? 'disabled' : ''}>
+              ${state.loading ? 'Creando cuenta...' : 'Crear cuenta'}
+            </button>
+            <button class="button-secondary" onclick="switchTab('session')">Volver a login</button>
+          </div>
+          <div class="tab-content ${state.loginTab === 'group' ? 'active' : ''}">
+            <h2>Acceso a grupo</h2>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">¿Ya tienes grupo?</p>
+            <input type="text" id="joinCode" placeholder="Código">
+            <input type="text" id="joinName" placeholder="Tu nombre">
+            <button class="button-secondary" onclick="handleJoinGroup()" style="margin-bottom: var(--spacing-lg);">Unirme</button>
+            <div class="divider">O</div>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: var(--spacing-lg);">Crear grupo</p>
+            <input type="text" id="groupName" placeholder="Nombre grupo">
+            <input type="text" id="userName" placeholder="Tu nombre">
+            <button class="button-primary" onclick="handleCreateGroup()">Crear</button>
+            <button class="button-secondary" onclick="switchTab('session')">Volver al login</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  } else if (state.screen === 'ranking-join') {
+    r.innerHTML = `<div class="login-container"><div class="login-center"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🏆</div><h1 class="login-title">Ranking Global</h1><p class="login-subtitle">Compite con jugadores de todo el mundo</p><div class="login-box"><h2>Ingresa tu nombre</h2><input type="text" id="rankingPlayerName" placeholder="Tu nombre"><button class="button-primary" onclick="handleJoinRanking()">Jugar</button><button class="button-secondary" onclick="backToLogin()">Volver</button></div></div></div>`;
+  } else if (state.screen === 'invite-code') {
+    r.innerHTML = `<div class="login-container"><div class="login-center"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">🎉</div><h1 class="login-title">¡Grupo creado!</h1><div class="login-box"><p style="color: var(--text-secondary); font-size: 13px; text-transform: uppercase; margin-bottom: var(--spacing-sm);">Tu código</p><div style="font-size: 36px; letter-spacing: 4px; margin-bottom: var(--spacing-lg); color: var(--orange-500); font-weight: 700; font-family: monospace;">${state.inviteCode}</div><button class="button-primary" onclick="handleCopyCode()">Copiar código</button><button class="button-secondary" onclick="goToDashboard()">Continuar</button><button class="button-secondary" onclick="backToLogin()">Volver</button></div></div></div>`;
+  } else if (state.screen === 'ranking') {
+    r.innerHTML = `<div class="ranking-container"><div class="header"><h1 style="margin: 0;">🏆 Ranking Global</h1><p style="margin: var(--spacing-md) 0 0 0;">Eres <strong>${state.currentUser?.name}</strong></p></div><div style="background: linear-gradient(135deg, rgba(255, 179, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: var(--spacing-xl); border: 1px solid var(--gold-400); text-align: center;"><div style="font: 600 12px var(--font-body); color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--spacing-md);">⚡ Emparejamiento automático</div><p style="margin: 0 0 var(--spacing-lg); color: var(--text-secondary); font-size: 13px;">Juega sin necesidad de retar. El sistema te empareja automáticamente con un rival aleatorio y tema random.</p><button class="button-primary" onclick="startAutoMatchmaking()" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); margin-bottom: 0;">⚡ Jugar Ahora</button></div><h2 style="font: 600 14px var(--font-display); color: var(--navy-900); margin: var(--spacing-xl) 0 var(--spacing-lg);">Top Jugadores</h2><div class="ranking-list">${state.globalRanking.map((p,i) => `<div class="ranking-item" style="${state.currentUser?.name === p.name ? 'background: rgba(255, 165, 0, 0.1); border: 2px solid var(--orange-500);' : ''}"><div class="ranking-position">${i+1}</div><div class="ranking-info"><div class="ranking-name">${p.name} ${state.currentUser?.name === p.name ? '👈 TÚ' : ''}</div><div class="ranking-winrate">Win Rate: ${Math.round(p.winRate)}%</div></div><div class="ranking-points"><div class="ranking-points-value">${p.points}</div><div class="ranking-points-label">puntos</div></div></div>`).join('')}</div><div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl);"><button class="button-secondary" onclick="backToLogin()" style="flex: 1;">Volver</button><button class="button-secondary" onclick="goToDashboard()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Mi Perfil</button></div></div>`;
+  } else if (state.screen === 'dashboard') {
+    r.innerHTML = `<div class="dashboard-container"><div class="header"><h1 style="margin: 0 0 var(--spacing-sm);">⚔️ Quiz Combat</h1><p>${state.currentUser?.name || 'Jugador'} ${state.currentGroup ? '• ' + state.currentGroup.name : ''}</p></div>${state.isLoggedIn ? `<div class="stats-box"><div class="stats-grid"><div><div class="stat-item">Tu win rate</div><div class="stat-value">${state.currentUser?.winRate || 0}%</div></div><div><div class="stat-item">Duelos hoy</div><div class="stat-value">0/3</div></div></div></div>` : `<div class="register-card"><h3>📊 Guarda tu progreso</h3><p>Crea una cuenta para ver tus estadísticas, ranking y más.</p><button class="button-secondary" onclick="switchTab('session')" style="border-color: var(--orange-500); color: var(--orange-500);">Crear cuenta gratuita</button></div>`}<h2 class="section-title">📚 Elige tema</h2>${topicsList.map(t => `<div class="card ${state.selectedTopic === t ? 'selected' : ''}" onclick="selectTopic('${t}')""><div class="card-title">${t}</div></div>`).join('')}${state.selectedTopic ? `<h2 class="section-title">⚔️ Elige rival</h2>${state.currentGroup?.members.filter(m => m.name !== state.currentUser?.name).map(rv => `<div class="card ${state.selectedRival?.name === rv.name ? 'selected' : ''}" onclick="selectRival('${rv.name}')""><div class="rival-item"><div class="rival-emoji">${rv.emoji}</div><div class="rival-details"><div class="card-title">${rv.name}</div><div class="card-subtitle">${rv.winRate}% victorias</div></div><div class="badge-box ${state.selectedRival?.name === rv.name ? 'active' : ''}">Seleccionar</div></div></div>`).join('')}${state.selectedRival ? `<button class="button-primary" onclick="startDuel()">Comenzar duelo ⚔️</button>` : ''}` : ''}<button class="button-secondary" onclick="logout()">Salir</button></div>`;
+  } else if (state.screen === 'game') {
+    if (!state.currentQuestions || state.currentQuestions.length === 0) {
+      r.innerHTML = `<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display); margin: 0 0 var(--spacing-md);">Error al cargar preguntas</h1><button class="button-primary" onclick="backToDashboard()">Volver al Dashboard</button></div></div>`;
+      return;
+    }
+    const q = state.currentQuestions[state.currentQuestionIndex];
+    if (!q) {
+      r.innerHTML = `<div style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f5f5f5; padding: var(--spacing-xl);"><div style="text-align: center;"><div style="font-size: 60px; margin-bottom: var(--spacing-lg);">⚠️</div><h1 style="font: 700 28px var(--font-display);">Error al cargar pregunta</h1><button class="button-primary" onclick="backToDashboard()">Volver</button></div></div>`;
+      return;
+    }
+    const pb = Array(5).fill(0).map((x,i) => i <= state.currentQuestionIndex);
+    r.innerHTML = `<div class="game-container"><div class="header" style="padding: var(--spacing-lg);"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);"><div>Pregunta ${state.currentQuestionIndex+1}/5</div><div style="text-align: right;">vs ${state.selectedRival?.name}</div></div><div class="progress-bar">${pb.map(f => `<div class="progress-segment ${f ? 'filled' : ''}"></div>`).join('')}</div></div><div class="question-box"><p class="question-text">${q.text}</p><div class="option-container">${q.options.map((o,i) => `<button class="option-button ${state.answers[state.currentQuestionIndex] === i ? 'selected' : ''}" onclick="selectAnswer(${state.currentQuestionIndex}, ${i})">${o}</button>`).join('')}</div></div><div class="button-group"><button class="button-secondary" onclick="prevQuestion()" ${state.currentQuestionIndex === 0 ? 'disabled' : ''}>← Atrás</button>${state.currentQuestionIndex < 4 ? `<button class="button-primary" onclick="nextQuestion()">Siguiente →</button>` : `<button class="button-primary" onclick="submitDuel()">Enviar ✓</button>`}</div></div>`;
+  } else if (state.screen === 'results') {
+    const nb = state.isRankingMode ? '⚡ Otro Duelo' : 'Volver al Dashboard';
+    const nf = state.isRankingMode ? 'startAutoMatchmaking()' : 'backToDashboard()';
+    r.innerHTML = `<div class="results-container"><div class="result-box ${state.resultUserWon ? 'result-win' : 'result-lose'}"><div class="emoji">${state.resultUserWon ? '🎉' : '😢'}</div><h1 class="result-title">${state.resultUserWon ? '¡Ganaste!' : 'Perdiste'}</h1><div class="score-grid"><div><div class="score-item">Tu score</div><div class="score-value">${state.userScore}</div></div><div><div class="score-item">${state.selectedRival?.name}</div><div class="score-value">${state.rivalScore}</div></div></div><button class="button-primary" onclick="${nf}" style="${state.isRankingMode ? 'background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);' : ''}">${nb}</button>${state.isRankingMode ? `<button class="button-secondary" onclick="backToRanking()">Ver Ranking</button>` : ''}</div></div>`;
+  }
+}
+
+render();
   </script>
 </body>
 </html>
