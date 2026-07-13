@@ -190,7 +190,7 @@ async function handleSessionLogin() {
   if (!client) return (setState({loading: false}), showMessage('error', 'Supabase aún está cargando...'));
 
   try {
-    const {data, error} = await client.auth.signInWithPassword({email: u + '@quiz-combat.app', password: p});
+    const {data, error} = await client.auth.signInWithPassword({email: u + '@example.com', password: p});
     if (error) {
       setState({loading: false});
       return showMessage('error', error.message || 'Error al iniciar sesión');
@@ -224,7 +224,7 @@ async function handleSessionRegister() {
   if (!client) return (setState({loading: false}), showMessage('error', 'Supabase aún está cargando...'));
 
   try {
-    const {data, error} = await client.auth.signUp({email: u + '@quiz-combat.app', password: p});
+    const {data, error} = await client.auth.signUp({email: u + '@example.com', password: p});
     if (error) {
       setState({loading: false});
       return showMessage('error', error.message || 'Error al crear cuenta');
