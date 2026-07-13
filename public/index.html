@@ -310,23 +310,32 @@ function handleCreateGroup() {
   const u = document.getElementById('userName')?.value;
   if (!n || !u) return showMessage('error', 'Por favor completa todos los campos');
   const c = Math.random().toString(36).substring(2,8).toUpperCase();
-  let newUser = {name:u,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  const userId = `user-${Date.now()}`;
+  let newUser = {name:u,id:userId,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
   console.log('🟢 Creando grupo con código:', c, 'usuario:', u);
+
   setState({screen:'invite-code',inviteCode:c,currentGroup:{name:n,code:c,members:[newUser]},currentUser:newUser,isLoggedIn:false});
 
-  // Cargar stats desde Supabase en background
+  // Guardar miembro y cargar stats desde Supabase
   setTimeout(() => {
-    console.log('⏳ Intentando cargar stats de Supabase...');
-    loadUserStats(c, u).then(savedStats => {
-      if (savedStats) {
-        console.log('✅ Stats encontradas en Supabase:', savedStats);
-        setState({currentUser: {...newUser, ...savedStats}});
-      } else {
-        console.log('❌ No se encontraron stats en Supabase para:', c, u);
-      }
-    }).catch(err => {
-      console.log('❌ Error al cargar stats:', err);
-    });
+    const client = getSupabase();
+    if (client) {
+      // Guardar miembro en group_members
+      client.from('group_members').insert({
+        group_code: c,
+        user_name: u,
+        user_id: userId,
+        emoji: '👤'
+      }).then(() => console.log('✅ Miembro guardado en grupo')).catch(e => console.log('❌ Error guardando miembro:', e));
+
+      // Cargar stats
+      loadUserStats(c, u).then(savedStats => {
+        if (savedStats) {
+          console.log('✅ Stats encontradas:', savedStats);
+          setState({currentUser: {...newUser, ...savedStats}});
+        }
+      });
+    }
   }, 500);
 }
 
@@ -334,23 +343,48 @@ function handleJoinGroup() {
   const c = document.getElementById('joinCode')?.value;
   const n = document.getElementById('joinName')?.value;
   if (!c || !n) return showMessage('error', 'Por favor completa todos los campos');
-  let newUser = {name:n,id:`user-${Date.now()}`,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
+  const userId = `user-${Date.now()}`;
+  let newUser = {name:n,id:userId,winRate:0,emoji:'👤',totalDuels:0,totalWins:0,points:0};
   console.log('🔷 Uniendo grupo con código:', c, 'usuario:', n);
+
+  // Mostrar grupo con rivales simulados mientras cargas datos
   setState({screen:'dashboard',currentUser:newUser,currentGroup:{name:`Grupo ${c}`,code:c,members:[newUser,createSampleUser('María'),createSampleUser('Juan'),createSampleUser('Sofia')]},isLoggedIn:false});
 
-  // Cargar stats desde Supabase en background
+  // Cargar miembros reales, stats desde Supabase
   setTimeout(() => {
-    console.log('⏳ Intentando cargar stats de Supabase...');
-    loadUserStats(c, n).then(savedStats => {
-      if (savedStats) {
-        console.log('✅ Stats encontradas en Supabase:', savedStats);
-        setState({currentUser: {...newUser, ...savedStats}});
-      } else {
-        console.log('❌ No se encontraron stats en Supabase para:', c, n);
-      }
-    }).catch(err => {
-      console.log('❌ Error al cargar stats:', err);
-    });
+    const client = getSupabase();
+    if (client) {
+      // Guardar este miembro en group_members
+      client.from('group_members').insert({
+        group_code: c,
+        user_name: n,
+        user_id: userId,
+        emoji: '👤'
+      }).then(() => console.log('✅ Miembro agregado al grupo')).catch(e => console.log('⚠️ Miembro ya existe o error:', e));
+
+      // Cargar todos los miembros del grupo desde Supabase
+      client.from('group_members').select('*').eq('group_code', c).then(({ data: members, error }) => {
+        if (error) {
+          console.log('❌ Error cargando miembros:', error);
+          return;
+        }
+        if (members && members.length > 0) {
+          console.log('✅ Miembros cargados de Supabase:', members);
+          const realMembers = members.map(m => ({name: m.user_name, id: m.user_id, emoji: m.emoji, winRate: 0, totalDuels: 0, totalWins: 0, points: 0}));
+          // Agregar los 3 simulados
+          const allMembers = [...realMembers, createSampleUser('María'), createSampleUser('Juan'), createSampleUser('Sofia')];
+          setState({currentGroup: {name: `Grupo ${c}`, code: c, members: allMembers}});
+        }
+      });
+
+      // Cargar stats
+      loadUserStats(c, n).then(savedStats => {
+        if (savedStats) {
+          console.log('✅ Stats encontradas:', savedStats);
+          setState({currentUser: {...newUser, ...savedStats}});
+        }
+      });
+    }
   }, 500);
 }
 
